@@ -81,3 +81,4 @@ jobs:
             ${{ matrix.project }}/dist/*.rpm
             ${{ matrix.project }}/dist/*.dmg
             ${{ matrix.project }}/dist/*.zip
+            ${{ matrix.project }}/dist/*.7z
