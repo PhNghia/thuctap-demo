@@ -1,22 +1,27 @@
-import { contextBridge } from 'electron'
-import { electronAPI } from '@electron-toolkit/preload'
+import { contextBridge, ipcRenderer } from 'electron'
 
-// Custom APIs for renderer
-const api = {}
+contextBridge.exposeInMainWorld('electronAPI', {
+  // Templates
+  getTemplates: () => ipcRenderer.invoke('get-templates'),
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
-if (process.contextIsolated) {
-  try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
-  } catch (error) {
-    console.error(error)
-  }
-} else {
-  // @ts-ignore (define in dts)
-  window.electron = electronAPI
-  // @ts-ignore (define in dts)
-  window.api = api
-}
+  // Project management
+  chooseProjectFolder: () => ipcRenderer.invoke('choose-project-folder'),
+  openProjectFile: () => ipcRenderer.invoke('open-project-file'),
+  saveProject: (data: object, projectPath: string) =>
+    ipcRenderer.invoke('save-project', data, projectPath),
+
+  // Assets
+  pickImage: () => ipcRenderer.invoke('pick-image'),
+  importImage: (sourcePath: string, projectDir: string) =>
+    ipcRenderer.invoke('import-image', sourcePath, projectDir),
+  resolveAssetUrl: (projectDir: string, relativePath: string) =>
+    ipcRenderer.invoke('resolve-asset-url', projectDir, relativePath),
+
+  // Export
+  exportProject: (opts: {
+    templateId: string
+    appData: object
+    projectDir: string
+    mode: 'folder' | 'zip'
+  }) => ipcRenderer.invoke('export-project', opts)
+})

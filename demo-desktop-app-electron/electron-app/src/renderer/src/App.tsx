@@ -1,7 +1,17 @@
-function App(): React.JSX.Element {
-  const ipcHandle = (): void => window.electron.ipcRenderer.send('ping')
+import { HashRouter, Routes, Route } from 'react-router-dom'
+import HomePage from './pages/HomePage'
+import ProjectPage from './pages/ProjectPage'
+import AppShell from './components/AppShell'
 
-  return (<></>)
+export default function App() {
+  return (
+    <HashRouter>
+      <AppShell>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/project/:templateId" element={<ProjectPage />} />
+        </Routes>
+      </AppShell>
+    </HashRouter>
+  )
 }
-
-export default App
