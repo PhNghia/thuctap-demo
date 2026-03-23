@@ -130,6 +130,15 @@ export default function HomePage() {
         ? { groups: [], items: [], _groupCounter: 0, _itemCounter: 0 }
         : template.gameType === 'quiz'
           ? { questions: [], _questionCounter: 0 }
+          : template.gameType === 'word-search'
+            ? {
+                title: 'Word Search Game',
+                helperText: 'Find every hidden word in the puzzle.',
+                gridSize: 12,
+                backgroundImagePath: null,
+                items: [],
+                _itemCounter: 0
+              }
           : {}
     const newProject = {
       version: '1.0.0',

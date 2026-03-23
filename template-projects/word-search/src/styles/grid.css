@@ -1,0 +1,416 @@
+/* ===== LAYOUT ===== */
+.game-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 40px;
+  flex-wrap: nowrap;
+  margin-top: 20px;
+  width: 100%;
+}
+
+/* ===== GRID ===== */
+.grid-shell {
+  width: auto;
+  flex: 0 0 auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 8px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 40px);
+  gap: 5px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  width: max-content;
+  margin: 0 auto;
+}
+
+/* ===== CELL ===== */
+.cell {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 18px;
+  font-weight: bold;
+  background: white;
+  color: black;
+  border: 1px solid #ddd;
+  user-select: none;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: 0.2s;
+}
+
+.cell:hover {
+  background: #e3f2fd;
+}
+
+.cell.selected {
+  background: #ffd54f;
+}
+
+.cell.found {
+  background: #81c784;
+  outline: 2px solid green;
+}
+
+/* ===== IMAGE HINTS ===== */
+.image-hints {
+  width: fit-content;
+  max-width: 360px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(78px, 78px));
+  column-gap: 14px;
+  row-gap: 14px;
+  align-items: start;
+  justify-items: center;
+}
+
+.hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  width: fit-content;
+  max-width: 78px;
+  padding: 8px;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.82);
+  border-radius: 12px;
+  color: #172033;
+}
+
+.hint img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.hint p {
+  margin: 0;
+  font-weight: 600;
+  word-break: break-word;
+  color: inherit;
+  max-width: 72px;
+}
+
+.hidden-word {
+  visibility: hidden;
+}
+
+.found-hint {
+  border: 2px solid #4caf50;
+  background: rgba(129, 199, 132, 0.2);
+  color: #1f5f2a;
+}
+
+/* ===== TOOLBAR ===== */
+.toolbar {
+  display: flex;
+  gap: 12px;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  width: fit-content;
+  margin: 0 auto 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.toolbar button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #1976d2;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+.toolbar button:hover {
+  background: #125ea8;
+  transform: translateY(-1px);
+}
+
+/* ===== CARDS ===== */
+.cards-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  justify-content: center;
+}
+
+.card {
+  width: 220px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+}
+
+.word-input {
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.item-upload {
+  height: 100px;
+}
+
+/* ===== DROP ZONE ===== */
+.drop-zone {
+  border: 2px dashed #aaa;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.7);
+  transition: 0.2s;
+}
+
+.drop-zone:hover {
+  border-color: #1976d2;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.drop-zone img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.drop-zone.bg-upload {
+  width: 260px;
+  height: 140px;
+}
+
+.drop-zone.item-upload {
+  width: 100%;
+  height: 100px;
+}
+
+/* ===== ADD CARD ===== */
+.add-card-btn {
+  width: 220px;
+  height: 120px;
+  border: 2px dashed #bbb;
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  color: #666;
+  transition: 0.2s;
+}
+
+.add-card-btn:hover {
+  border-color: #1976d2;
+  color: #1976d2;
+  background: rgba(25, 118, 210, 0.05);
+}
+
+/* ===== DELETE BUTTON ===== */
+.delete-btn {
+  border: none;
+  background: transparent;
+  color: red;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* ===== OVERLAY ===== */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+}
+
+.overlay-content {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  box-sizing: border-box;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-size: cover;
+  background-position: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ===== CLOSE BUTTON ===== */
+.close-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 99999;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.2s;
+}
+
+.close-btn:hover {
+  background: red;
+  transform: scale(1.1);
+}
+
+/* ===== SECTION ===== */
+.section {
+  margin-bottom: 30px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  border-left: 5px solid #2196f3;
+  padding-left: 10px;
+}
+
+/* ===== CENTER ===== */
+.center-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.game-helper {
+  margin: 0 0 16px;
+  text-align: center;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .overlay-content {
+    padding: 72px 12px 20px;
+  }
+
+  .game-wrapper {
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .game-helper {
+    margin-bottom: 12px;
+  }
+
+  .grid-shell {
+    width: 100%;
+  }
+
+  .grid {
+    grid-template-columns: repeat(12, 32px);
+    gap: 4px;
+    padding: 8px;
+  }
+
+  .cell {
+    width: 32px;
+    height: 32px;
+    font-size: 15px;
+  }
+
+  .image-hints {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+    column-gap: 12px;
+    row-gap: 12px;
+  }
+
+  .hint {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 5px;
+    min-height: unset;
+    width: 100%;
+    max-width: none;
+    padding: 8px;
+    font-size: 12px;
+    background: transparent;
+  }
+
+  .hint img {
+    width: 70px;
+    height: 70px;
+  }
+
+  .hint p {
+    margin: 0;
+  }
+
+  .found-hint {
+    border-width: 1px;
+  }
+
+  .toolbar {
+    width: min(100%, 360px);
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 12px;
+  }
+
+  .toolbar.button {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .toolbar button {
+    width: 100%;
+  }
+
+  .drop-zone.bg-upload,
+  .card,
+  .add-card-btn {
+    width: min(100%, 320px);
+  }
+
+  .close-btn {
+    top: 12px;
+    right: 12px;
+  }
+}

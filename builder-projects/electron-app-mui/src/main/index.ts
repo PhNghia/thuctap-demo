@@ -54,7 +54,7 @@ function copyDirSync(src: string, dest: string) {
   }
 }
 
-/** Recursively collect all values of keys named 'imagePath' that start with 'assets/' */
+/** Recursively collect all asset paths referenced by project data */
 function collectUsedAssets(obj: unknown, out = new Set<string>()): Set<string> {
   if (!obj || typeof obj !== 'object') return out
   if (Array.isArray(obj)) {
@@ -62,8 +62,15 @@ function collectUsedAssets(obj: unknown, out = new Set<string>()): Set<string> {
     return out
   }
   for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
-    if (k === 'imagePath' && typeof v === 'string' && v.startsWith('assets/')) out.add(v)
-    else collectUsedAssets(v, out)
+    if (
+      (k === 'imagePath' || k === 'backgroundImagePath') &&
+      typeof v === 'string' &&
+      v.startsWith('assets/')
+    ) {
+      out.add(v)
+    } else {
+      collectUsedAssets(v, out)
+    }
   }
   return out
 }

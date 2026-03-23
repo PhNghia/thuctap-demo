@@ -1,0 +1,6 @@
+{
+  "name": "Word Search",
+  "description": "Students search for hidden words in a letter grid, using optional image clues and a custom background.",
+  "gameType": "word-search",
+  "version": "1.0.0"
+}
