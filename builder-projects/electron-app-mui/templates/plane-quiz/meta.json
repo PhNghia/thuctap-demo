@@ -1,6 +1,6 @@
 {
-  "name": "Quiz",
+  "name": "Plane Quiz",
   "description": "Multiple-choice questions with single or multiple correct answers. Perfect for vocabulary, comprehension, and knowledge checks.",
-  "gameType": "quiz",
+  "gameType": "plane-quiz",
   "version": "1.0.0"
 }
