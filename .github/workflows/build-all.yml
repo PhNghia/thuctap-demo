@@ -120,23 +120,6 @@ jobs:
             cp -rv "$dir"/* "$TARGET_DIR/"
           done
 
-      # Create a ready-to-build bundle
-      - name: Prepare electron-builder ready bundle
-        shell: bash
-        run: |
-          BUNDLE_DIR="./electron-bundle"
-          mkdir -p "$BUNDLE_DIR"
-
-          cp -r "${{ matrix.project_path }}/out" "$BUNDLE_DIR/"
-          cp -r "${{ matrix.project_path }}/templates" "$BUNDLE_DIR/"
-          cp "${{ matrix.project_path }}/package.json" "$BUNDLE_DIR/"
-
-          [ -f "${{ matrix.project_path }}/electron-builder.yml" ] && \
-            cp "${{ matrix.project_path }}/electron-builder.yml" "$BUNDLE_DIR/" || true
-
-          # Optional: copy icons, assets, etc. if used
-          cp -r "${{ matrix.project_path }}/resources" "$BUNDLE_DIR/" || true
-
       - name: Get yarn cache directory path
         id: yarn-cache-dir-path
         shell: bash
@@ -167,6 +150,23 @@ jobs:
             yarn build:linux
           fi
 
+      # Create a ready-to-build bundle
+      - name: Prepare electron-builder ready bundle
+        shell: bash
+        run: |
+          BUNDLE_DIR="./electron-bundle"
+          mkdir -p "$BUNDLE_DIR"
+
+          cp -r "${{ matrix.project_path }}/out" "$BUNDLE_DIR/"
+          cp -r "${{ matrix.project_path }}/templates" "$BUNDLE_DIR/"
+          cp "${{ matrix.project_path }}/package.json" "$BUNDLE_DIR/"
+
+          [ -f "${{ matrix.project_path }}/electron-builder.yml" ] && \
+            cp "${{ matrix.project_path }}/electron-builder.yml" "$BUNDLE_DIR/" || true
+
+          # Optional: copy icons, assets, etc. if used
+          cp -r "${{ matrix.project_path }}/resources" "$BUNDLE_DIR/" || true
+
       - name: Sanitize artifact name
         id: sanitize
         shell: bash
@@ -183,7 +183,7 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.FINAL_NAME }}
+          name: ${{ env.FINAL_NAME }}-package
           path: |
             ${{ matrix.project_path }}/dist/*.exe
             ${{ matrix.project_path }}/dist/*.AppImage
