@@ -130,7 +130,8 @@ export default function HomePage() {
         ? { groups: [], items: [], _groupCounter: 0, _itemCounter: 0 }
         : template.gameType === 'quiz'
           ? { questions: [], _questionCounter: 0 }
-          : {}
+          : template.gameType === 'group-sort'
+        ?{} :{}
     const newProject = {
       version: '1.0.0',
       templateId: template.id,
