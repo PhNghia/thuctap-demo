@@ -192,9 +192,7 @@ ipcMain.handle('save-project', async (_e, projectData: object, projectPath: stri
 /** Save As: pick folder, copy assets, write file. Returns new paths or null if canceled. */
 ipcMain.handle(
   'save-project-as',
-  async (_e, opts: { projectData: object; oldProjectDir: string }) => {
-    const { projectData, oldProjectDir } = opts
-
+  async (_e, _opts: { projectData: object; oldProjectDir: string }) => {
     const result = await dialog.showOpenDialog(mainWindow!, {
       properties: ['openDirectory', 'createDirectory'],
       title: 'Save Project As — Choose New Folder'
