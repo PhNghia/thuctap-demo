@@ -54,7 +54,7 @@ function copyDirSync(src: string, dest: string) {
   }
 }
 
-/** Recursively collect all values of keys named 'imagePath' that start with 'assets/' */
+/** Recursively collect all values of keys named 'imagePath' or 'imageUrl' that reference assets/ */
 function collectUsedAssets(obj: unknown, out = new Set<string>()): Set<string> {
   if (!obj || typeof obj !== 'object') return out
   if (Array.isArray(obj)) {
@@ -63,7 +63,11 @@ function collectUsedAssets(obj: unknown, out = new Set<string>()): Set<string> {
   }
   for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
     if (k === 'imagePath' && typeof v === 'string' && v.startsWith('assets/')) out.add(v)
-    else collectUsedAssets(v, out)
+    else if (k === 'imageUrl' && typeof v === 'string') {
+      // Could be './assets/foo.png' or 'assets/foo.png'
+      const rel = v.replace(/^\.\//, '')
+      if (rel.startsWith('assets/')) out.add(rel)
+    } else collectUsedAssets(v, out)
   }
   return out
 }
@@ -90,6 +94,19 @@ function injectAppData(html: string, appData: object): string {
   return html.replace(/<script/, scriptTag + '\n<script')
 }
 
+/**
+ * For templates that expect a different data shape at runtime than what we store internally,
+ * transform the appData before injection/export.
+ */
+function prepareAppDataForTemplate(templateId: string, appData: object): object {
+  if (templateId === 'balloon-letter-picker') {
+    // Template expects a flat array of { word, imageUrl, hint }
+    const data = appData as { words?: { word: string; imageUrl: string; hint: string }[] }
+    return (data.words ?? []).map(({ word, imageUrl, hint }) => ({ word, imageUrl, hint }))
+  }
+  return appData
+}
+
 function normalizeAssetPaths(obj: unknown, projectDir: string): unknown {
   if (obj === null || obj === undefined) return obj
   if (Array.isArray(obj)) return obj.map((item) => normalizeAssetPaths(item, projectDir))
@@ -99,6 +116,11 @@ function normalizeAssetPaths(obj: unknown, projectDir: string): unknown {
   for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
     if (typeof value === 'string' && value.startsWith('assets/')) {
       const absPath = path.join(projectDir, value)
+      result[key] = `file://${absPath.replace(/\\/g, '/')}`
+    } else if (key === 'imageUrl' && typeof value === 'string' && value.startsWith('./assets/')) {
+      // balloon-letter-picker stores imageUrl as './assets/...' relative
+      const rel = value.replace(/^\.\//, '')
+      const absPath = path.join(projectDir, rel)
       result[key] = `file://${absPath.replace(/\\/g, '/')}`
     } else {
       result[key] = normalizeAssetPaths(value, projectDir)
@@ -124,7 +146,8 @@ ipcMain.handle(
     if (!fs.existsSync(htmlPath)) throw new Error(`Template HTML not found for: ${templateId}`)
 
     const sanitizedData = normalizeAssetPaths(appData, projectDir)
-    const injectedHtml = injectAppData(fs.readFileSync(htmlPath, 'utf-8'), sanitizedData as object)
+    const templateData = prepareAppDataForTemplate(templateId, sanitizedData as object)
+    const injectedHtml = injectAppData(fs.readFileSync(htmlPath, 'utf-8'), templateData)
 
     const previewWindow = new BrowserWindow({
       width: 1100,
@@ -337,7 +360,8 @@ ipcMain.handle(
     const htmlPath = path.join(gameDir, 'index.html')
     if (!fs.existsSync(htmlPath)) throw new Error(`Template HTML not found for: ${templateId}`)
 
-    const injectedHtml = injectAppData(fs.readFileSync(htmlPath, 'utf-8'), appData)
+    const templateData = prepareAppDataForTemplate(templateId, appData)
+    const injectedHtml = injectAppData(fs.readFileSync(htmlPath, 'utf-8'), templateData)
 
     if (mode === 'folder') {
       const result = await dialog.showOpenDialog(mainWindow!, {

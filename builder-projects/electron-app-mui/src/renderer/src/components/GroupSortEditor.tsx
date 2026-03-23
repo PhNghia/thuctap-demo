@@ -23,7 +23,15 @@ import {
 import { useCallback, useState } from 'react'
 import { useSettings } from '../context/SettingsContext'
 import { GroupSortAppData, GroupSortGroup, GroupSortItem } from '../types'
-import { DroppableZone, EmptyState, IndexBadge, NameField, SidebarTab } from './EditorShared'
+import {
+  DroppableZone,
+  EmptyState,
+  IndexBadge,
+  NameField,
+  SidebarTab,
+  StickyHeader,
+  useEditorShortcuts
+} from './EditorShared'
 import ImagePicker from './ImagePicker'
 
 interface Props {
@@ -99,14 +107,16 @@ export default function GroupSortEditor({ appData: raw, projectDir, onChange }: 
     [data, groups, items, onChange]
   )
 
+  // groupId defaults to the last group (or first as fallback for empty)
   const addItem = useCallback(
     (groupId?: string, initialImage?: string) => {
       const { id, counter } = nextItemId()
+      const targetGroupId = groupId ?? groups[groups.length - 1]?.id ?? ''
       const i: GroupSortItem = {
         id,
         name: resolved.prefillNames ? `Item ${counter}` : '',
         imagePath: initialImage ?? null,
-        groupId: groupId ?? groups[0]?.id ?? ''
+        groupId: targetGroupId
       }
       onChange({ ...data, _itemCounter: counter, items: [...items, i] })
     },
@@ -117,11 +127,12 @@ export default function GroupSortEditor({ appData: raw, projectDir, onChange }: 
     async (filePath: string, groupId?: string) => {
       const { id, counter } = nextItemId()
       const imagePath = await window.electronAPI.importImage(filePath, projectDir, id)
+      const targetGroupId = groupId ?? groups[groups.length - 1]?.id ?? ''
       const i: GroupSortItem = {
         id,
         name: resolved.prefillNames ? `Item ${counter}` : '',
         imagePath,
-        groupId: groupId ?? groups[0]?.id ?? ''
+        groupId: targetGroupId
       }
       onChange({ ...data, _itemCounter: counter, items: [...items, i] })
     },
@@ -141,6 +152,15 @@ export default function GroupSortEditor({ appData: raw, projectDir, onChange }: 
     },
     [data, items, onChange]
   )
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  // Tier 1 (Ctrl+N) = item (smallest unit) → last group
+  // Tier 2 (Ctrl+Shift+N) = group (nothing above group)
+  // Tier 3 (Ctrl+Shift+Alt+N) = group (same, nothing higher)
+  useEditorShortcuts((tier) => {
+    if (tier === 1) addItem()
+    else addGroup()
+  })
 
   // ── Validation ────────────────────────────────────────────────────────────
   const unassigned = items.filter((i) => !i.groupId || !groups.find((g) => g.id === i.groupId))
@@ -329,19 +349,17 @@ function GroupsTab({
 }) {
   return (
     <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Box>
-          <Typography variant="h6">Groups</Typography>
-          <Typography variant="caption" color="text.secondary">
-            Each group is a sorting category. Items will be sorted into these groups.
-          </Typography>
-        </Box>
-        <DroppableZone onFileDrop={onAddFromDrop}>
-          <Button startIcon={<AddIcon />} variant="contained" size="small" onClick={() => onAdd()}>
-            Add Group
-          </Button>
-        </DroppableZone>
-      </Box>
+      <StickyHeader
+        title="Groups"
+        description="Each group is a sorting category. Items will be sorted into these groups."
+        actions={
+          <DroppableZone onFileDrop={onAddFromDrop}>
+            <Button startIcon={<AddIcon />} variant="contained" size="small" onClick={() => onAdd()}>
+              Add Group
+            </Button>
+          </DroppableZone>
+        }
+      />
       {groups.length === 0 ? (
         <EmptyState
           icon={<CategoryIcon sx={{ fontSize: 48, opacity: 0.3 }} />}
@@ -439,32 +457,30 @@ function ItemsTab({
   items: GroupSortItem[]
   groups: GroupSortGroup[]
   projectDir: string
-  onAdd: () => void
+  onAdd: (groupId?: string) => void
   onAddFromDrop: (fp: string) => void
   onUpdate: (id: string, p: Partial<GroupSortItem>) => void
   onDelete: (id: string) => void
 }) {
   return (
     <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Box>
-          <Typography variant="h6">Items</Typography>
-          <Typography variant="caption" color="text.secondary">
-            Each item belongs to one group. Students will drag these into the correct group.
-          </Typography>
-        </Box>
-        <DroppableZone onFileDrop={onAddFromDrop}>
-          <Button
-            startIcon={<AddIcon />}
-            variant="contained"
-            size="small"
-            onClick={() => onAdd()}
-            disabled={groups.length === 0}
-          >
-            Add Item
-          </Button>
-        </DroppableZone>
-      </Box>
+      <StickyHeader
+        title="Items"
+        description="Each item belongs to one group. Students will drag these into the correct group."
+        actions={
+          <DroppableZone onFileDrop={onAddFromDrop}>
+            <Button
+              startIcon={<AddIcon />}
+              variant="contained"
+              size="small"
+              onClick={() => onAdd()}
+              disabled={groups.length === 0}
+            >
+              Add Item
+            </Button>
+          </DroppableZone>
+        }
+      />
       {groups.length === 0 && (
         <Alert severity="info" sx={{ mb: 2 }}>
           Create at least one group before adding items.
@@ -606,39 +622,40 @@ function OverviewTab({
   onDeleteGroup: (id: string) => void
   onDeleteItem: (id: string) => void
 }) {
+  // "Add Item" in the header → last group
+  const lastGroupId = groups[groups.length - 1]?.id
+
   return (
     <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Box>
-          <Typography variant="h6">Overview</Typography>
-          <Typography variant="caption" color="text.secondary">
-            All groups and their items at a glance.
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          <DroppableZone onFileDrop={onAddGroupFromDrop}>
-            <Button
-              startIcon={<AddIcon />}
-              variant="outlined"
-              size="small"
-              onClick={() => onAddGroup()}
-            >
-              Add Group
-            </Button>
-          </DroppableZone>
-          <DroppableZone onFileDrop={(fp) => onAddItemFromDrop(fp)}>
-            <Button
-              startIcon={<AddIcon />}
-              variant="contained"
-              size="small"
-              onClick={() => onAddItem()}
-              disabled={groups.length === 0}
-            >
-              Add Item
-            </Button>
-          </DroppableZone>
-        </Box>
-      </Box>
+      <StickyHeader
+        title="Overview"
+        description="All groups and their items at a glance."
+        actions={
+          <>
+            <DroppableZone onFileDrop={onAddGroupFromDrop}>
+              <Button
+                startIcon={<AddIcon />}
+                variant="outlined"
+                size="small"
+                onClick={() => onAddGroup()}
+              >
+                Add Group
+              </Button>
+            </DroppableZone>
+            <DroppableZone onFileDrop={(fp) => onAddItemFromDrop(fp, lastGroupId)}>
+              <Button
+                startIcon={<AddIcon />}
+                variant="contained"
+                size="small"
+                onClick={() => onAddItem(lastGroupId)}
+                disabled={groups.length === 0}
+              >
+                Add Item
+              </Button>
+            </DroppableZone>
+          </>
+        }
+      />
 
       {groups.length === 0 ? (
         <EmptyState

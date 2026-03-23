@@ -34,6 +34,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import GroupSortEditor from '../components/GroupSortEditor'
 import QuizEditor from '../components/QuizEditor'
+import BalloonLetterPickerEditor from '../components/BalloonLetterPickerEditor'
 import SettingsPanel from '../components/SettingsPanel'
 import { useSettings } from '../context/SettingsContext'
 import { useHistory } from '../hooks/useHistory'
@@ -442,6 +443,13 @@ export default function ProjectPage() {
         )}
         {templateId === 'plane-quiz' && (
           <QuizEditor
+            appData={history.present as any}
+            projectDir={meta.projectDir}
+            onChange={handleAppDataChange}
+          />
+        )}
+        {templateId === 'balloon-letter-picker' && (
+          <BalloonLetterPickerEditor
             appData={history.present as any}
             projectDir={meta.projectDir}
             onChange={handleAppDataChange}

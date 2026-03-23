@@ -46,7 +46,19 @@ export interface QuizAppData {
   _questionCounter: number
 }
 
-export type AnyAppData = GroupSortAppData | QuizAppData
+// ── Balloon Letter Picker ─────────────────────────────────────────────────────
+export interface BalloonWord {
+  id: string
+  word: string
+  imageUrl: string // relative path, e.g. './images/words/jump.png'
+  hint: string
+}
+export interface BalloonLetterPickerAppData {
+  words: BalloonWord[]
+  _wordCounter: number
+}
+
+export type AnyAppData = GroupSortAppData | QuizAppData | BalloonLetterPickerAppData
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 export type AutoSaveMode = 'off' | 'on-edit' | 'interval'

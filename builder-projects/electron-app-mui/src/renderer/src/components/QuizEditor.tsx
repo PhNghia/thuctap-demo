@@ -24,7 +24,15 @@ import {
 import { useCallback } from 'react'
 import { useSettings } from '../context/SettingsContext'
 import { QuizAnswer, QuizAppData, QuizQuestion } from '../types'
-import { DroppableZone, EmptyState, IndexBadge, NameField, SidebarTab } from './EditorShared'
+import {
+  DroppableZone,
+  EmptyState,
+  IndexBadge,
+  NameField,
+  SidebarTab,
+  StickyHeader,
+  useEditorShortcuts
+} from './EditorShared'
 import ImagePicker from './ImagePicker'
 
 interface Props {
@@ -128,7 +136,6 @@ export default function QuizEditor({ appData: raw, projectDir, onChange }: Props
         questions: questions.map((q) => {
           if (q.id !== qid) return q
           let answers = q.answers.map((a) => (a.id === aid ? { ...a, ...patch } : a))
-          // If single-correct mode and we're setting isCorrect=true, clear others
           if (patch.isCorrect && !q.multipleCorrect) {
             answers = answers.map((a) => (a.id === aid ? a : { ...a, isCorrect: false }))
           }
@@ -150,6 +157,10 @@ export default function QuizEditor({ appData: raw, projectDir, onChange }: Props
     },
     [data, questions, onChange]
   )
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  // Quiz has only one unit (question), so all tiers do the same
+  useEditorShortcuts(() => addQuestion())
 
   // ── Validation ────────────────────────────────────────────────────────────
   const noText = questions.filter((q) => !q.question.trim())
@@ -236,24 +247,22 @@ export default function QuizEditor({ appData: raw, projectDir, onChange }: Props
           </Alert>
         </Collapse>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box>
-            <Typography variant="h6">Questions</Typography>
-            <Typography variant="caption" color="text.secondary">
-              Each question has answer choices. Mark which answers are correct.
-            </Typography>
-          </Box>
-          <DroppableZone onFileDrop={addQuestionFromDrop}>
-            <Button
-              startIcon={<AddIcon />}
-              variant="contained"
-              size="small"
-              onClick={() => addQuestion()}
-            >
-              Add Question
-            </Button>
-          </DroppableZone>
-        </Box>
+        <StickyHeader
+          title="Questions"
+          description="Each question has answer choices. Mark which answers are correct."
+          actions={
+            <DroppableZone onFileDrop={addQuestionFromDrop}>
+              <Button
+                startIcon={<AddIcon />}
+                variant="contained"
+                size="small"
+                onClick={() => addQuestion()}
+              >
+                Add Question
+              </Button>
+            </DroppableZone>
+          }
+        />
 
         {questions.length === 0 ? (
           <EmptyState
