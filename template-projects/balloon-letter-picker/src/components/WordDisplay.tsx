@@ -18,6 +18,13 @@ const WordDisplay: React.FC<WordDisplayProps> = ({
   totalWords
 }) => {
   const [wordImage, setWordImage] = useState<HTMLImageElement | null>(null);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const img = new Image();
@@ -26,15 +33,31 @@ const WordDisplay: React.FC<WordDisplayProps> = ({
   }, [currentWord]);
 
   const wordProgress = (currentProgress.filter(l => l !== '_').length / currentWord.word.length) * 100;
+  
+  const isMobile = windowWidth < 768;
+  const isTablet = windowWidth >= 768 && windowWidth < 1024;
+  
+  // Kích thước responsive
+  const containerPadding = isMobile ? '12px' : '20px 25px';
+  const imageSize = isMobile ? 70 : isTablet ? 100 : 140;
+  const letterBoxSize = isMobile ? 45 : isTablet ? 55 : 70;
+  const letterFontSize = isMobile ? 24 : isTablet ? 30 : 36;
+  const hintFontSize = isMobile ? 14 : isTablet ? 18 : 24;
+  const hintPadding = isMobile ? '6px 12px' : '10px 30px';
+  const gap = isMobile ? 15 : 25;
+  const flexDirection = isMobile ? 'column' : 'row';
+  const scoreFontSize = isMobile ? 16 : 20;
+  const levelFontSize = isMobile ? 14 : 16;
 
   return (
     <div style={{
       backgroundColor: 'white',
-      padding: '20px 25px',
+      padding: containerPadding,
       borderRadius: '16px',
-      marginBottom: '20px',
+      marginBottom: '15px',
       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-      width: '1200px',
+      width: '100%',           // Thay đổi: 100% thay vì cố định
+      maxWidth: '1200px',      // Giữ maxWidth để không quá to
       boxSizing: 'border-box'
     }}>
       {/* Thanh tiến trình và điểm */}
@@ -42,7 +65,9 @@ const WordDisplay: React.FC<WordDisplayProps> = ({
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '15px'
+        marginBottom: '12px',
+        gap: '10px',
+        flexWrap: 'wrap'
       }}>
         <div style={{
           flex: 1,
@@ -50,7 +75,7 @@ const WordDisplay: React.FC<WordDisplayProps> = ({
           background: '#e0e0e0',
           borderRadius: '3px',
           overflow: 'hidden',
-          marginRight: '20px'
+          minWidth: '100px'
         }}>
           <div style={{
             width: `${wordProgress}%`,
@@ -62,12 +87,13 @@ const WordDisplay: React.FC<WordDisplayProps> = ({
         </div>
         
         <div style={{
-          fontSize: '20px',
+          fontSize: `${scoreFontSize}px`,
           fontWeight: '600',
           color: '#764ba2',
           background: '#f3e8ff',
-          padding: '4px 16px',
-          borderRadius: '20px'
+          padding: isMobile ? '2px 10px' : '4px 16px',
+          borderRadius: '20px',
+          whiteSpace: 'nowrap'
         }}>
           {score}
         </div>
@@ -75,13 +101,14 @@ const WordDisplay: React.FC<WordDisplayProps> = ({
 
       <div style={{
         display: 'flex',
-        gap: '25px',
-        alignItems: 'center'
+        gap: `${gap}px`,
+        alignItems: 'center',
+        flexDirection: flexDirection
       }}>
         {/* Hình ảnh */}
         <div style={{
-          width: '140px',
-          height: '140px',
+          width: `${imageSize}px`,
+          height: `${imageSize}px`,
           border: '2px solid #667eea',
           borderRadius: '12px',
           overflow: 'hidden',
@@ -89,7 +116,8 @@ const WordDisplay: React.FC<WordDisplayProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          flexShrink: 0
+          flexShrink: 0,
+          margin: isMobile ? '0 auto' : '0'
         }}>
           {wordImage ? (
             <img 
@@ -102,33 +130,34 @@ const WordDisplay: React.FC<WordDisplayProps> = ({
               }}
             />
           ) : (
-            <div style={{ color: '#999' }}>...</div>
+            <div style={{ color: '#999', fontSize: `${letterFontSize - 10}px` }}>📷</div>
           )}
         </div>
 
         {/* Khu vực ô chữ */}
         <div style={{ 
           flex: 1,
-          minWidth: 0
+          minWidth: 0,
+          width: '100%'
         }}>
           {/* Hàng ô chữ */}
           <div style={{
             display: 'flex',
-            gap: '12px',
+            gap: isMobile ? '6px' : '12px',
             justifyContent: 'center',
-            marginBottom: '20px',
+            marginBottom: isMobile ? '12px' : '20px',
             flexWrap: 'wrap'
           }}>
             {currentProgress.map((letter, index) => (
               <div key={index} style={{
-                width: '70px',
-                height: '70px',
+                width: `${letterBoxSize}px`,
+                height: `${letterBoxSize}px`,
                 border: '2px solid #667eea',
                 borderRadius: '10px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '36px',
+                fontSize: `${letterFontSize}px`,
                 fontWeight: 'bold',
                 backgroundColor: letter !== '_' ? '#f0f7ff' : '#fafafa',
                 color: '#333',
@@ -140,28 +169,52 @@ const WordDisplay: React.FC<WordDisplayProps> = ({
             ))}
           </div>
           
-          {/* Hint to hơn */}
+          {/* Hint */}
           <div style={{
             display: 'flex',
             justifyContent: 'center',
             padding: '0 5px'
           }}>
             <span style={{
-              fontSize: '24px',           // Tăng từ 16px lên 24px
+              fontSize: `${hintFontSize}px`,
               color: '#2c3e50',
               fontWeight: '500',
               fontStyle: 'italic',
               background: '#f0f7ff',
-              padding: '10px 30px',        // Tăng padding
-              borderRadius: '40px',         // Bo tròn hơn
+              padding: hintPadding,
+              borderRadius: '40px',
               boxShadow: '0 2px 8px rgba(102, 126, 234, 0.15)',
-              border: '1px solid #e0e7ff'
+              border: '1px solid #e0e7ff',
+              textAlign: 'center',
+              wordBreak: 'break-word'
             }}>
               {currentWord.hint}
             </span>
           </div>
+          
+          {!isMobile && (
+            <div style={{
+              textAlign: 'center',
+              marginTop: '10px',
+              fontSize: `${levelFontSize}px`,
+              color: '#888'
+            }}>
+              Level {level}/{totalWords}
+            </div>
+          )}
         </div>
       </div>
+      
+      {isMobile && (
+        <div style={{
+          textAlign: 'center',
+          marginTop: '10px',
+          fontSize: `${levelFontSize}px`,
+          color: '#888'
+        }}>
+          Level {level}/{totalWords}
+        </div>
+      )}
     </div>
   );
 };

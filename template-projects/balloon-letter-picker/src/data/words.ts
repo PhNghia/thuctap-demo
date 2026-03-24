@@ -8,12 +8,12 @@ const DEFAULT_WORDS: WordData[] = [
     imageUrl: './images/words/jump.png',
     hint: 'He pushes his body off the ground and rises into the air.'
   },
-  /*{
+  {
     word: 'RUN',
     imageUrl: './images/words/run.png',
     hint: 'He moves fast on his feet.'
   },
-  {
+  /*{
     word: 'SWIM',
     imageUrl: './images/words/swim.png',
     hint: 'He glides smoothly through the water.'

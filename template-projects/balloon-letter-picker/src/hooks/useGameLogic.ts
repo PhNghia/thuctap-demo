@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Bubble, GameState } from '../types/game.types';
 import { WORDS, BUBBLE_IMAGES } from '../data/words';
 
-const useGameLogic = (canvasSize: { width: number; height: number }) => {
+const useGameLogic = (canvasSize: { width: number; height: number }, bubbleSpeed?: number) => {
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [gameState, setGameState] = useState<GameState>({
     currentWord: WORDS[0],
@@ -15,10 +15,23 @@ const useGameLogic = (canvasSize: { width: number; height: number }) => {
     totalWords: WORDS.length
   });
   
-  // Dùng ref để tránh vòng lặp vô hạn
   const isResetting = useRef(false);
+  
+  // Callbacks
+  const onCorrectCallback = useRef<((letter: string, isWordComplete: boolean) => void) | null>(null);
+  const onWrongCallback = useRef<((letter: string) => void) | null>(null);
+  const onWordCompleteCallback = useRef<((word: string) => void) | null>(null);
 
-  // Lấy danh sách chữ còn cần điền
+  const setCallbacks = useCallback((callbacks: {
+    onCorrect?: (letter: string, isWordComplete: boolean) => void;
+    onWrong?: (letter: string) => void;
+    onWordComplete?: (word: string) => void;
+  }) => {
+    onCorrectCallback.current = callbacks.onCorrect || null;
+    onWrongCallback.current = callbacks.onWrong || null;
+    onWordCompleteCallback.current = callbacks.onWordComplete || null;
+  }, []);
+
   const getRemainingLetters = useCallback(() => {
     const wordLetters = gameState.currentWord.word.split('');
     const remaining: string[] = [];
@@ -32,7 +45,6 @@ const useGameLogic = (canvasSize: { width: number; height: number }) => {
     return remaining;
   }, [gameState.currentWord, gameState.currentProgress]);
 
-  // Tạo pool chữ cái - chỉ gồm những chữ còn cần điền + chữ sai
   const getLetterPool = useCallback(() => {
     const remainingLetters = getRemainingLetters();
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -57,7 +69,6 @@ const useGameLogic = (canvasSize: { width: number; height: number }) => {
     return pool;
   }, [getRemainingLetters]);
 
-  // Kiểm tra va chạm giữa các bong bóng
   const checkCollision = useCallback((newBubble: Bubble, existingBubbles: Bubble[]): boolean => {
     const minDistance = 120;
     for (const bubble of existingBubbles) {
@@ -71,7 +82,6 @@ const useGameLogic = (canvasSize: { width: number; height: number }) => {
     return false;
   }, []);
 
-  // Tìm vị trí không va chạm
   const findNonCollidingPosition = useCallback((existingBubbles: Bubble[]): { x: number, y: number } => {
     let attempts = 0;
     const maxAttempts = 100;
@@ -108,22 +118,24 @@ const useGameLogic = (canvasSize: { width: number; height: number }) => {
     
     const randomLetter = letterPool[Math.floor(Math.random() * letterPool.length)];
     const randomImage = BUBBLE_IMAGES[Math.floor(Math.random() * BUBBLE_IMAGES.length)];
-    
     const position = findNonCollidingPosition(gameState.bubbles.filter(b => !b.isPopped));
+
+    const defaultSpeed = Math.max(2, Math.min(8, canvasSize.height / 150));
+    const speed = bubbleSpeed !== undefined ? bubbleSpeed : (defaultSpeed + Math.random() * (defaultSpeed / 2));
 
     return {
       id: Math.random().toString(36).substr(2, 9),
       letter: randomLetter,
       x: position.x,
       y: position.y,
-      speed: 4 + Math.random() * 2,
+      speed: speed,
       imageUrl: randomImage,
       isPopped: false
     };
-  }, [gameState.bubbles, getLetterPool, findNonCollidingPosition]);
+  }, [gameState.bubbles, getLetterPool, findNonCollidingPosition, bubbleSpeed, canvasSize.height]);
 
   const goToNextWord = useCallback(() => {
-    if (!gameState.gameOver && currentWordIndex < WORDS.length - 1) {
+    if (currentWordIndex < WORDS.length - 1) {
       const nextIndex = currentWordIndex + 1;
       setCurrentWordIndex(nextIndex);
       setGameState(prev => ({
@@ -133,13 +145,13 @@ const useGameLogic = (canvasSize: { width: number; height: number }) => {
         bubbles: [],
         level: prev.level + 1
       }));
-    } else if (currentWordIndex === WORDS.length - 1) {
+    } else {
       setGameState(prev => ({
         ...prev,
         gameOver: true
       }));
     }
-  }, [currentWordIndex, WORDS, gameState.gameOver]);
+  }, [currentWordIndex, WORDS]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -201,10 +213,16 @@ const useGameLogic = (canvasSize: { width: number; height: number }) => {
 
       if (targetIndex !== -1 && currentWord[targetIndex] === letter) {
         currentProgress[targetIndex] = letter;
-        
         const isWordComplete = currentProgress.join('') === currentWord;
         
+        if (onCorrectCallback.current) {
+          onCorrectCallback.current(letter, isWordComplete);
+        }
+        
         if (isWordComplete) {
+          if (onWordCompleteCallback.current) {
+            onWordCompleteCallback.current(currentWord);
+          }
           setTimeout(() => {
             goToNextWord();
           }, 1000);
@@ -217,6 +235,9 @@ const useGameLogic = (canvasSize: { width: number; height: number }) => {
           score: prev.score + 10
         };
       } else {
+        if (onWrongCallback.current) {
+          onWrongCallback.current(letter);
+        }
         return {
           ...prev,
           bubbles: updatedBubbles
@@ -225,7 +246,6 @@ const useGameLogic = (canvasSize: { width: number; height: number }) => {
     });
   }, [goToNextWord]);
 
-  // Hàm reset game - bắt đầu lại từ đầu
   const resetGame = useCallback(() => {
     if (isResetting.current) return;
     isResetting.current = true;
@@ -246,7 +266,6 @@ const useGameLogic = (canvasSize: { width: number; height: number }) => {
     }, 100);
   }, [WORDS]);
 
-  // Hàm restart game (reset và bắt đầu lại)
   const restartGame = useCallback(() => {
     resetGame();
   }, [resetGame]);
@@ -262,7 +281,8 @@ const useGameLogic = (canvasSize: { width: number; height: number }) => {
     remainingLetters: getRemainingLetters().length,
     shootBubble,
     resetGame,
-    restartGame
+    restartGame,
+    setCallbacks
   };
 };
 

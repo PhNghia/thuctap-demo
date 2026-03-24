@@ -6,10 +6,50 @@ import { BUBBLE_IMAGES } from '../data/words';
 
 const Game: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [loadedImages, setLoadedImages] = useState<Map<string, HTMLImageElement>>(new Map());
+  const [canvasSize, setCanvasSize] = useState({ width: 1200, height: 700 });
   
-  const canvasSize = { width: 1200, height: 700 };
+  // State cho hiệu ứng
+  const [explodeEffect, setExplodeEffect] = useState<{ x: number; y: number; active: boolean }>({ x: 0, y: 0, active: false });
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [explodeImage, setExplodeImage] = useState<HTMLImageElement | null>(null);
+  const [chippyImage, setChippyImage] = useState<HTMLImageElement | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' | 'info'; visible: boolean }>({ text: '', type: 'info', visible: false });
+  
+  // Hàm tính toán responsive
+  const getBubbleSize = (width: number, height: number) => {
+    const byWidth = width * 0.11;
+    const byHeight = height * 0.16;
+    const baseSize = Math.min(byWidth, byHeight);
+    return Math.max(250, Math.min(300, baseSize));
+  };
+  
+  const getFontSize = (bubbleSize: number) => {
+    return Math.floor(bubbleSize * 0.32);
+  };
+  
+  const getHitRadius = (bubbleSize: number) => {
+    return Math.floor(bubbleSize * 0.55);
+  };
+  
+  const getBubbleSpeed = (height: number) => {
+    return Math.max(2, Math.min(8, height / 140));
+  };
+  
+  const getCrosshairSize = (width: number) => {
+    return Math.max(20, Math.min(40, width / 35));
+  };
+  
+  const getLineWidth = (width: number) => {
+    return Math.max(2, Math.min(4, width / 400));
+  };
+  
+  const bubbleSize = getBubbleSize(canvasSize.width, canvasSize.height);
+  const fontSize = getFontSize(bubbleSize);
+  const hitRadius = getHitRadius(bubbleSize);
+  const bubbleSpeed = getBubbleSpeed(canvasSize.height);
   
   const {
     bubbles,
@@ -21,9 +61,128 @@ const Game: React.FC = () => {
     totalWords,
     remainingLetters,
     shootBubble,
-    resetGame  // Lấy hàm resetGame từ hook
-  } = useGameLogic(canvasSize);
-
+    resetGame,
+    setCallbacks
+  } = useGameLogic(canvasSize, bubbleSpeed);
+  
+  // Hàm hiển thị thông báo
+  const showToast = (text: string, type: 'success' | 'error' | 'info') => {
+    setToastMessage({ text, type, visible: true });
+    setTimeout(() => {
+      setToastMessage(prev => ({ ...prev, visible: false }));
+    }, 1500);
+  };
+  
+  // Hàm tạo hiệu ứng nổ
+  const triggerExplode = (x: number, y: number) => {
+    setExplodeEffect({ x, y, active: true });
+    setTimeout(() => {
+      setExplodeEffect(prev => ({ ...prev, active: false }));
+    }, 300);
+  };
+  
+  // Hàm hiển thị nhân vật chúc mừng
+  const triggerCelebration = () => {
+    setShowCelebration(true);
+    setTimeout(() => {
+      setShowCelebration(false);
+    }, 3000);
+  };
+  
+  // Hàm reset game
+  const handleResetGame = () => {
+    resetGame();
+  };
+  
+  // Load hình ảnh hiệu ứng
+  useEffect(() => {
+  const loadEffectImages = async () => {
+    const explodeImg = new Image();
+    // Sửa đường dẫn: thêm dấu . để tương đối
+    explodeImg.src = './images/effects/explode.png';
+    explodeImg.onload = () => setExplodeImage(explodeImg);
+    explodeImg.onerror = () => {
+      console.log('Không tải được explode.png, dùng hình mặc định');
+      // Tạo hình mặc định nếu không có
+      const canvas = document.createElement('canvas');
+      canvas.width = 100;
+      canvas.height = 100;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#FF6B6B';
+        ctx.beginPath();
+        ctx.arc(50, 50, 45, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'yellow';
+        ctx.font = 'bold 40px Arial';
+        ctx.fillText('💥', 50, 65);
+        const defaultImg = new Image();
+        defaultImg.src = canvas.toDataURL();
+        setExplodeImage(defaultImg);
+      }
+    };
+    
+    const chippyImg = new Image();
+    chippyImg.src = './images/characters/chippy.png';
+    chippyImg.onload = () => setChippyImage(chippyImg);
+    chippyImg.onerror = () => {
+      console.log('Không tải được chippy.png, dùng hình mặc định');
+      // Tạo hình mặc định
+      const canvas = document.createElement('canvas');
+      canvas.width = 150;
+      canvas.height = 150;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath();
+        ctx.arc(75, 75, 70, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#FF6B6B';
+        ctx.font = 'bold 60px Arial';
+        ctx.fillText('🎉', 55, 95);
+        const defaultImg = new Image();
+        defaultImg.src = canvas.toDataURL();
+        setChippyImage(defaultImg);
+      }
+    };
+  };
+  
+  loadEffectImages();
+}, []);
+  
+  // Đăng ký callback
+  useEffect(() => {
+    setCallbacks({
+      onWordComplete: (word: string) => {
+        triggerCelebration();
+      }
+    });
+  }, [setCallbacks, currentWord.word]);
+  
+  // Responsive canvas size
+  useEffect(() => {
+    const updateSize = () => {
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.clientWidth;
+        const ratio = 1200 / 700;
+        let width = Math.min(containerWidth, 1400);
+        let height = width / ratio;
+        
+        if (height > window.innerHeight - 200) {
+          height = window.innerHeight - 200;
+          width = height * ratio;
+        }
+        
+        setCanvasSize({ width: Math.floor(width), height: Math.floor(height) });
+      }
+    };
+    
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+  
+  // Load hình ảnh bong bóng
   useEffect(() => {
     const loadImages = async () => {
       const imageMap = new Map();
@@ -50,43 +209,51 @@ const Game: React.FC = () => {
 
     loadImages();
   }, []);
-
+  
+  // Mouse move handler
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!canvasRef.current) return;
       const rect = canvasRef.current.getBoundingClientRect();
+      const scaleX = canvasSize.width / rect.width;
+      const scaleY = canvasSize.height / rect.height;
       setMousePos({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
       });
     };
 
     const canvas = canvasRef.current;
     canvas?.addEventListener('mousemove', handleMouseMove);
     return () => canvas?.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-
+  }, [canvasSize]);
+  
+  // Canvas click handler
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (gameOver) return;
     
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
-
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
+    
+    const scaleX = canvasSize.width / rect.width;
+    const scaleY = canvasSize.height / rect.height;
+    const clickX = (e.clientX - rect.left) * scaleX;
+    const clickY = (e.clientY - rect.top) * scaleY;
 
     const hitBubble = bubbles.find(bubble => {
       const dx = clickX - bubble.x;
       const dy = clickY - bubble.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
-      return distance < 55 && !bubble.isPopped;
+      return distance < hitRadius && !bubble.isPopped;
     });
 
     if (hitBubble) {
+      triggerExplode(hitBubble.x, hitBubble.y);
       shootBubble(hitBubble.id, hitBubble.letter);
     }
   };
-
+  
+  // Canvas render effect
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -102,6 +269,9 @@ const Game: React.FC = () => {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    const bubbleRadius = bubbleSize / 2;
+    const textOffset = 35;
+    
     bubbles.forEach(bubble => {
       if (!bubble.isPopped) {
         const img = loadedImages.get(bubble.imageUrl);
@@ -109,71 +279,131 @@ const Game: React.FC = () => {
         if (img) {
           ctx.save();
           
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-          ctx.shadowBlur = 20;
-          ctx.shadowOffsetY = 8;
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+          ctx.shadowBlur = bubbleSize / 8;
+          ctx.shadowOffsetY = bubbleSize / 12;
           
           ctx.globalAlpha = 0.95;
-          ctx.drawImage(img, bubble.x - 100, bubble.y - 100, 200, 200);
+          ctx.drawImage(img, bubble.x - bubbleRadius, bubble.y - bubbleRadius, bubbleSize, bubbleSize);
           
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-          ctx.shadowBlur = 8;
-          ctx.shadowOffsetX = 2;
-          ctx.shadowOffsetY = 2;
-          ctx.globalAlpha = 1;
-          ctx.fillStyle = 'white';
-          ctx.font = 'bold 28px Arial';
+          ctx.shadowColor = 'transparent';
+          const smallerFontSize = Math.floor(fontSize * 0.85);
+          ctx.font = `bold ${smallerFontSize}px "Arial", "Segoe UI"`;
           ctx.textAlign = 'center';
-          ctx.fillText(bubble.letter, bubble.x , bubble.y - 20);
+          ctx.textBaseline = 'middle';
+          
+          // Vẽ viền đen
+          ctx.fillStyle = 'black';
+          ctx.fillText(bubble.letter, bubble.x - 2, bubble.y - textOffset);
+          ctx.fillText(bubble.letter, bubble.x + 2, bubble.y - textOffset);
+          ctx.fillText(bubble.letter, bubble.x, bubble.y - textOffset - 2);
+          ctx.fillText(bubble.letter, bubble.x, bubble.y - textOffset + 2);
+          
+          // Vẽ chữ trắng
+          ctx.fillStyle = 'white';
+          ctx.fillText(bubble.letter, bubble.x, bubble.y - textOffset);
           
           ctx.restore();
         }
       }
     });
+    
+    // Vẽ hiệu ứng nổ
+    if (explodeEffect.active && explodeImage) {
+      const explodeSize = bubbleSize * 1.2;
+      ctx.drawImage(explodeImage, explodeEffect.x - explodeSize/2, explodeEffect.y - explodeSize/2, explodeSize, explodeSize);
+    }
 
+    // Vẽ tâm ngắm
     ctx.shadowColor = 'transparent';
+    const crosshairSize = getCrosshairSize(canvasSize.width);
+    const lineWidth = getLineWidth(canvasSize.width);
     
     ctx.strokeStyle = 'white';
-    ctx.lineWidth = 4;
+    ctx.lineWidth = lineWidth;
     ctx.beginPath();
-    ctx.arc(mousePos.x, mousePos.y, 30, 0, Math.PI * 2);
+    ctx.arc(mousePos.x, mousePos.y, crosshairSize, 0, Math.PI * 2);
     ctx.stroke();
     
     ctx.strokeStyle = 'red';
-    ctx.lineWidth = 3;
+    ctx.lineWidth = lineWidth;
     ctx.beginPath();
-    ctx.arc(mousePos.x, mousePos.y, 33, 0, Math.PI * 2);
+    ctx.arc(mousePos.x, mousePos.y, crosshairSize + 3, 0, Math.PI * 2);
     ctx.stroke();
     
     ctx.beginPath();
     ctx.strokeStyle = 'red';
-    ctx.lineWidth = 3;
-    ctx.moveTo(mousePos.x - 40, mousePos.y);
-    ctx.lineTo(mousePos.x - 18, mousePos.y);
-    ctx.moveTo(mousePos.x + 18, mousePos.y);
-    ctx.lineTo(mousePos.x + 40, mousePos.y);
-    ctx.moveTo(mousePos.x, mousePos.y - 40);
-    ctx.lineTo(mousePos.x, mousePos.y - 18);
-    ctx.moveTo(mousePos.x, mousePos.y + 18);
-    ctx.lineTo(mousePos.x, mousePos.y + 40);
+    ctx.lineWidth = lineWidth;
+    const lineLength = crosshairSize + 10;
+    ctx.moveTo(mousePos.x - lineLength, mousePos.y);
+    ctx.lineTo(mousePos.x - crosshairSize - 5, mousePos.y);
+    ctx.moveTo(mousePos.x + crosshairSize + 5, mousePos.y);
+    ctx.lineTo(mousePos.x + lineLength, mousePos.y);
+    ctx.moveTo(mousePos.x, mousePos.y - lineLength);
+    ctx.lineTo(mousePos.x, mousePos.y - crosshairSize - 5);
+    ctx.moveTo(mousePos.x, mousePos.y + crosshairSize + 5);
+    ctx.lineTo(mousePos.x, mousePos.y + lineLength);
     ctx.stroke();
 
     ctx.beginPath();
     ctx.fillStyle = 'red';
-    ctx.arc(mousePos.x, mousePos.y, 6, 0, Math.PI * 2);
+    ctx.arc(mousePos.x, mousePos.y, Math.max(3, canvasSize.width / 200), 0, Math.PI * 2);
     ctx.fill();
 
-  }, [bubbles, mousePos, loadedImages]);
+  }, [bubbles, mousePos, loadedImages, canvasSize, bubbleSize, fontSize, hitRadius, explodeEffect, explodeImage]);
 
   return (
     <div style={{
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      padding: '20px',
+      padding: '10px',
       minHeight: '100vh',
       background: 'black'
     }}>
+      {/* Toast thông báo */}
+      {toastMessage.visible && (
+        <div style={{
+          position: 'fixed',
+          top: '80px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: toastMessage.type === 'success' ? '#48bb78' : toastMessage.type === 'error' ? '#f56565' : '#4299e1',
+          color: 'white',
+          padding: '12px 24px',
+          borderRadius: '50px',
+          zIndex: 200,
+          fontSize: '18px',
+          fontWeight: 'bold',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          animation: 'fadeInOut 1.5s ease'
+        }}>
+          {toastMessage.text}
+        </div>
+      )}
+      
+      {/* Nhân vật chúc mừng */}
+      {showCelebration && chippyImage && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 300,
+          animation: 'celebrate 0.5s ease-out, float 0.5s ease-in-out infinite'
+        }}>
+          <img 
+            src={chippyImage.src} 
+            alt="Chippy" 
+            style={{
+              width: '500px',
+              height: '500px',
+              objectFit: 'contain'
+            }}
+          />
+        </div>
+      )}
+      
       <WordDisplay 
         currentWord={currentWord}
         currentProgress={currentProgress}
@@ -182,18 +412,24 @@ const Game: React.FC = () => {
         totalWords={totalWords}
       />
       
-      <canvas
-        ref={canvasRef}
-        width={canvasSize.width}
-        height={canvasSize.height}
-        onClick={handleCanvasClick}
-        style={{ 
-          border: '4px solid white', 
-          cursor: 'none',
-          borderRadius: '15px',
-          boxShadow: '0 15px 30px rgba(0,0,0,0.4)'
-        }}
-      />
+      <div ref={containerRef} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+        <canvas
+          ref={canvasRef}
+          width={canvasSize.width}
+          height={canvasSize.height}
+          onClick={handleCanvasClick}
+          style={{ 
+            border: '3px solid white', 
+            cursor: 'none',
+            borderRadius: '15px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.4)',
+            width: '100%',
+            height: 'auto',
+            maxWidth: canvasSize.width,
+            maxHeight: canvasSize.height
+          }}
+        />
+      </div>
       
       {gameOver && (
         <div style={{
@@ -202,42 +438,43 @@ const Game: React.FC = () => {
           left: '50%',
           transform: 'translate(-50%, -50%)',
           background: 'white',
-          padding: '60px',
-          borderRadius: '30px',
+          padding: 'min(60px, 8vw)',
+          borderRadius: 'min(30px, 5vw)',
           boxShadow: '0 30px 60px rgba(0,0,0,0.5)',
           textAlign: 'center',
           zIndex: 1000,
-          minWidth: '500px',
+          minWidth: 'min(500px, 80vw)',
+          maxWidth: '90vw',
           animation: 'slideIn 0.5s ease-out'
         }}>
-          <h1 style={{ fontSize: '80px', marginBottom: '20px' }}>🏆</h1>
+          <h1 style={{ fontSize: 'min(80px, 12vw)', marginBottom: '10px' }}>🏆</h1>
           <h2 style={{ 
-            fontSize: '48px', 
+            fontSize: 'min(48px, 8vw)', 
             color: '#667eea', 
-            marginBottom: '20px' 
+            marginBottom: '15px' 
           }}>
-            CHIẾN THẮNG!
+            YOU ARE THE WINNER!
           </h2>
           <p style={{ 
-            fontSize: '36px', 
-            margin: '30px 0',
+            fontSize: 'min(36px, 6vw)', 
+            margin: '20px 0',
             color: '#764ba2',
             fontWeight: 'bold'
           }}>
-            {score} điểm
+            {score} score
           </p>
           <p style={{ 
-            fontSize: '24px', 
+            fontSize: 'min(24px, 4vw)', 
             color: '#666', 
-            marginBottom: '40px' 
+            marginBottom: '30px' 
           }}>
-            Bạn đã hoàn thành {totalWords} từ!
+            You have completed {totalWords} words!
           </p>
           <button 
-            onClick={resetGame}  // THAY ĐỔI Ở ĐÂY: dùng resetGame thay vì reload
+            onClick={handleResetGame}
             style={{
-              padding: '20px 60px',
-              fontSize: '28px',
+              padding: 'min(20px, 4vw) min(60px, 10vw)',
+              fontSize: 'min(28px, 5vw)',
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
               border: 'none',
@@ -250,7 +487,7 @@ const Game: React.FC = () => {
             onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
             onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
           >
-            CHƠI LẠI
+            PLAY AGAIN
           </button>
         </div>
       )}
@@ -266,6 +503,24 @@ const Game: React.FC = () => {
               transform: translate(-50%, -50%);
               opacity: 1;
             }
+          }
+          
+          @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) scale(0.8); }
+            15% { opacity: 1; transform: translateX(-50%) scale(1); }
+            85% { opacity: 1; transform: translateX(-50%) scale(1); }
+            100% { opacity: 0; transform: translateX(-50%) scale(0.8); }
+          }
+          
+          @keyframes celebrate {
+            0% { transform: translate(-50%, -50%) scale(0); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+          }
+          
+          @keyframes float {
+            0% { transform: translate(-50%, -50%) translateY(0px); }
+            50% { transform: translate(-50%, -50%) translateY(-10px); }
+            100% { transform: translate(-50%, -50%) translateY(0px); }
           }
         `}
       </style>
