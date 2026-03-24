@@ -1,322 +1,215 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useState, useRef, useEffect, useCallback } from "react";
-import type { GameState, GameData, CardItem } from "../types/objects";
-import {
-  generateCards,
-  calculateGridDimensions,
-  useWindowSize,
-  useTiltEffect,
-} from "../utils";
+import { useMemo, useState, useRef, useEffect, useCallback } from "react";
+import type { GameConfig, CardState } from "../types/objects";
+import { buildDeck, getOptimalGrid } from "../utils";
+import Card from "./Card";
+import { HUD } from "./HUD";
+import WellDoneScreen from "./WellDoneScreen";
 import { MY_APP_DATA } from "../data";
-import { Card } from "./Card";
 
-// Main Game Component
-const MatchingGame: React.FC = () => {
-  const [gameState, setGameState] = useState<GameState>({
-    cards: [],
-    selectedCardId: null,
-    lockBoard: false,
-    matchedCount: 0,
-    totalPairs: 0,
-    message: { type: null, text: "" },
-  });
-
-  const [gameData, setGameData] = useState<GameData>(MY_APP_DATA);
-  const [isGameComplete, setIsGameComplete] = useState(false);
-  const [gridDimensions, setGridDimensions] = useState({ rows: 0, cols: 0 });
-
-  const gridRef = useRef<HTMLDivElement>(null);
-  const { tiltStyle, handleMouseMove, handleMouseLeave } =
-    useTiltEffect(gridRef);
-
-  // Load game data from window object
-  useEffect(() => {
-    if (typeof window !== "undefined" && (window as any).MY_APP_DATA) {
-      setGameData((window as any).MY_APP_DATA);
-    }
+// ─── Main Game ────────────────────────────────────────────────────────────────
+export default function MatchingGame() {
+  // Load config
+  const config: GameConfig = useMemo(() => {
+    const w = window as unknown as { MY_APP_DATA?: GameConfig };
+    return w.MY_APP_DATA ?? MY_APP_DATA;
   }, []);
 
-  // Initialize game
-  useEffect(() => {
-    const newCards = generateCards(gameData);
-    const totalPairs = newCards.length / 2;
+  const [cards, setCards] = useState<CardState[]>(() => buildDeck(config));
+  const [flipped, setFlipped] = useState<string[]>([]); // up to 2 uids
+  const [locked, setLocked] = useState(false);
+  const [moves, setMoves] = useState(0);
+  const [mascotState, setMascotState] = useState<
+    "idle" | "happy" | "sad" | null
+  >(null);
+  const [gameWon, setGameWon] = useState(false);
+  const mascotTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    setGameState((prev) => ({
-      ...prev,
-      cards: newCards,
-      totalPairs,
-      matchedCount: 0,
-      selectedCardId: null,
-    }));
-    setIsGameComplete(false);
-  }, [gameData]);
+  // Grid dimensions (fixed from deck build)
+  const grid = useMemo(() => getOptimalGrid(cards.length), [cards.length]);
 
-  // Update grid dimensions when cards change
-  useEffect(() => {
-    if (gameState.cards.length > 0) {
-      const { rows, cols } = calculateGridDimensions(gameState.cards.length);
-      setGridDimensions({ rows, cols });
-    }
-  }, [gameState.cards]);
-
-  // Check game completion
-  useEffect(() => {
-    if (
-      gameState.matchedCount === gameState.totalPairs &&
-      gameState.totalPairs > 0
-    ) {
-      setIsGameComplete(true);
-    }
-  }, [gameState.matchedCount, gameState.totalPairs]);
-
-  const showMessage = useCallback((type: "success" | "error", text: string) => {
-    setGameState((prev) => ({ ...prev, message: { type, text } }));
-    setTimeout(() => {
-      setGameState((prev) => ({ ...prev, message: { type: null, text: "" } }));
-    }, 1500);
-  }, []);
-
-  const handleCardClick = useCallback(
-    async (clickedCard: CardItem) => {
-      if (
-        gameState.lockBoard ||
-        clickedCard.isFlipped ||
-        clickedCard.isMatched ||
-        isGameComplete
-      ) {
-        return;
-      }
-
-      const { selectedCardId, cards } = gameState;
-
-      // First card selection
-      if (selectedCardId === null) {
-        setGameState((prev) => ({
-          ...prev,
-          cards: prev.cards.map((card) =>
-            card.id === clickedCard.id ? { ...card, isFlipped: true } : card,
-          ),
-          selectedCardId: clickedCard.id,
-        }));
-        return;
-      }
-
-      // Second card selection
-      const selectedCard = cards.find((card) => card.id === selectedCardId);
-      if (!selectedCard || selectedCard.id === clickedCard.id) return;
-
-      setGameState((prev) => ({
-        ...prev,
-        lockBoard: true,
-        cards: prev.cards.map((card) =>
-          card.id === clickedCard.id ? { ...card, isFlipped: true } : card,
-        ),
-      }));
-
-      // Check match
-      const isMatch = selectedCard.imageSrc === clickedCard.imageSrc;
-
-      if (isMatch) {
-        showMessage("success", "Great match! 🎉");
-
-        setTimeout(() => {
-          setGameState((prev) => ({
-            ...prev,
-            cards: prev.cards.map((card) =>
-              card.id === selectedCard.id || card.id === clickedCard.id
-                ? { ...card, isMatched: true, isFlipped: false }
-                : card,
-            ),
-            selectedCardId: null,
-            lockBoard: false,
-            matchedCount: prev.matchedCount + 1,
-          }));
-        }, 500);
-      } else {
-        showMessage("error", "Try again! 😢");
-
-        setTimeout(() => {
-          setGameState((prev) => ({
-            ...prev,
-            cards: prev.cards.map((card) =>
-              card.id === selectedCard.id || card.id === clickedCard.id
-                ? { ...card, isFlipped: false }
-                : card,
-            ),
-            selectedCardId: null,
-            lockBoard: false,
-          }));
-        }, 800);
-      }
-    },
-    [gameState, isGameComplete, showMessage],
+  // Responsive: track container size and orientation
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
+  const [isLandscape, setIsLandscape] = useState(
+    window.innerWidth > window.innerHeight,
   );
 
-  const resetGame = useCallback(() => {
-    const newCards = generateCards(gameData);
-    setGameState({
-      cards: newCards,
-      selectedCardId: null,
-      lockBoard: false,
-      matchedCount: 0,
-      totalPairs: newCards.length / 2,
-      message: { type: null, text: "" },
+  useEffect(() => {
+    const obs = new ResizeObserver((entries) => {
+      const e = entries[0];
+      if (e) {
+        setContainerSize({ w: e.contentRect.width, h: e.contentRect.height });
+      }
     });
-    setIsGameComplete(false);
-  }, [gameData]);
+    if (containerRef.current) obs.observe(containerRef.current);
+
+    const onResize = () =>
+      setIsLandscape(window.innerWidth > window.innerHeight);
+    window.addEventListener("resize", onResize);
+    return () => {
+      obs.disconnect();
+      window.removeEventListener("resize", onResize);
+    };
+  }, []);
+
+  // Compute card size to fill available space
+  const GAP = 10;
+  const cardSize = useMemo(() => {
+    if (!containerSize.w || !containerSize.h) return 80;
+    const maxByCols = Math.floor(
+      (containerSize.w - GAP * (grid.cols - 1)) / grid.cols,
+    );
+    const maxByRows = Math.floor(
+      (containerSize.h - GAP * (grid.rows - 1)) / grid.rows,
+    );
+    const size = Math.min(maxByCols, maxByRows);
+    return Math.max(size, 48); // minimum 48px
+  }, [containerSize, grid]);
+
+  const gridW = cardSize * grid.cols + GAP * (grid.cols - 1);
+  const gridH = cardSize * grid.rows + GAP * (grid.rows - 1);
+
+  // Matched pairs count
+  const totalPairs = cards.length / 2;
+  const matchedPairs = cards.filter((c) => c.isMatched).length / 2;
+
+  // Handle card click
+  const handleCardClick = useCallback(
+    (uid: string) => {
+      if (locked) return;
+      const card = cards.find((c) => c.uid === uid);
+      if (!card || card.isFlipped || card.isMatched) return;
+      if (flipped.includes(uid)) return;
+
+      const newFlipped = [...flipped, uid];
+
+      setCards((prev) =>
+        prev.map((c) => (c.uid === uid ? { ...c, isFlipped: true } : c)),
+      );
+
+      if (newFlipped.length === 1) {
+        setFlipped(newFlipped);
+      } else {
+        // Two cards flipped
+        setFlipped([]);
+        setMoves((m) => m + 1);
+        setLocked(true);
+
+        const [uid1, uid2] = newFlipped;
+        const c1 = cards.find((c) => c.uid === uid1)!;
+        const c2 = card; // current card (just clicked)
+
+        const isMatch = c1.itemId === c2.itemId;
+
+        if (mascotTimer.current) clearTimeout(mascotTimer.current);
+
+        setTimeout(() => {
+          if (isMatch) {
+            setMascotState("happy");
+            setCards((prev) => {
+              const updated = prev.map((c) =>
+                c.uid === uid1 || c.uid === uid2
+                  ? { ...c, isMatched: true, isFlipped: true }
+                  : c,
+              );
+              if (updated.every((c) => c.isMatched)) {
+                setTimeout(() => setGameWon(true), 600);
+              }
+              return updated;
+            });
+          } else {
+            setMascotState("sad");
+            setCards((prev) =>
+              prev.map((c) =>
+                c.uid === uid1 || c.uid === uid2
+                  ? { ...c, isFlipped: false }
+                  : c,
+              ),
+            );
+          }
+          setLocked(false);
+          mascotTimer.current = setTimeout(() => setMascotState("idle"), 1800);
+        }, 900);
+      }
+    },
+    [cards, flipped, locked],
+  );
+
+  const restart = useCallback(() => {
+    setCards(buildDeck(config));
+    setFlipped([]);
+    setLocked(false);
+    setMoves(0);
+    setMascotState(null);
+    setGameWon(false);
+  }, [config]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-blue-400">
-      {/* Game Container */}
-      <div className="container mx-auto px-4 py-6 h-screen flex flex-col lg:flex-row gap-6">
-        {/* HUD Section */}
-        <div className="lg:w-80 flex flex-col gap-4">
-          <motion.div
-            initial={{ x: -100, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            className="bg-white/90 backdrop-blur rounded-2xl p-6 shadow-xl"
-          >
-            <h2 className="text-2xl font-bold text-purple-600 mb-4">
-              Memory Match
-            </h2>
-
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">Progress:</span>
-                <div className="flex-1 mx-4 h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{
-                      width: `${(gameState.matchedCount / gameState.totalPairs) * 100}%`,
-                    }}
-                    className="h-full bg-gradient-to-r from-green-400 to-blue-500"
-                  />
-                </div>
-                <span className="font-bold text-purple-600">
-                  {gameState.matchedCount}/{gameState.totalPairs}
-                </span>
-              </div>
-
-              <div className="text-center text-2xl font-bold">
-                {gameState.matchedCount === gameState.totalPairs &&
-                gameState.totalPairs > 0 ? (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="text-green-500"
-                  >
-                    🎉 Well-done! 🎉
-                  </motion.div>
-                ) : (
-                  <span>Match the pairs!</span>
-                )}
-              </div>
-            </div>
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={resetGame}
-              className="mt-6 w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all"
-            >
-              New Game 🔄
-            </motion.button>
-          </motion.div>
-
-          {/* Pet/Mascot Message */}
-          <motion.div
-            animate={{
-              scale: gameState.message.type === "success" ? [1, 1.2, 1] : 1,
-              rotate: gameState.message.type === "error" ? [0, -10, 10, 0] : 0,
-            }}
-            transition={{ duration: 0.3 }}
-            className="bg-white/90 backdrop-blur rounded-2xl p-6 shadow-xl text-center"
-          >
-            {gameState.message.type === "success" && (
-              <div className="text-4xl">😊🎉</div>
-            )}
-            {gameState.message.type === "error" && (
-              <div className="text-4xl">😢💔</div>
-            )}
-            {!gameState.message.type && <div className="text-4xl">🐶</div>}
-            <p
-              className={`mt-2 font-bold ${
-                gameState.message.type === "success"
-                  ? "text-green-500"
-                  : gameState.message.type === "error"
-                    ? "text-red-500"
-                    : "text-gray-600"
-              }`}
-            >
-              {gameState.message.text || "Find matching pairs!"}
-            </p>
-          </motion.div>
-        </div>
-
-        {/* Game Grid Section - Sử dụng CSS Grid với auto-fit */}
-        <div
-          className="flex-1 flex items-center justify-center perspective-1000 overflow-auto"
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
-        >
-          <motion.div
-            ref={gridRef}
-            style={{
-              ...tiltStyle,
-              transformStyle: "preserve-3d",
-            }}
-            className="w-full h-full flex items-center justify-center p-4"
-          >
-            <div
-              className="grid gap-3 p-4 bg-white/20 backdrop-blur rounded-3xl shadow-2xl w-full h-full"
-              style={{
-                gridTemplateColumns: `repeat(${gridDimensions.cols}, minmax(80px, 1fr))`,
-                gridTemplateRows: `repeat(${gridDimensions.rows}, minmax(80px, 1fr))`,
-                maxWidth: `min(100%, ${gridDimensions.cols * 180}px)`,
-                maxHeight: `min(100%, ${gridDimensions.rows * 180}px)`,
-              }}
-            >
-              {gameState.cards.map((card) => (
-                <Card
-                  key={card.id}
-                  item={card}
-                  isFlipped={card.isFlipped}
-                  isMatched={card.isMatched}
-                  cardBack={gameData.cardBackImage || "🎴"}
-                  onClick={() => handleCardClick(card)}
-                />
-              ))}
-            </div>
-          </motion.div>
-        </div>
+    <div
+      className="w-screen h-screen overflow-hidden flex"
+      style={{
+        background:
+          "linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)",
+        fontFamily: "'Nunito', 'Comic Sans MS', cursive, sans-serif",
+        flexDirection: isLandscape ? "row" : "column",
+        alignItems: isLandscape ? "stretch" : "stretch",
+      }}
+    >
+      {/* HUD Panel */}
+      <div
+        className="flex-shrink-0 flex items-center justify-center p-4"
+        style={
+          isLandscape
+            ? { width: 240, overflowY: "auto" }
+            : { height: "auto", maxHeight: "35vh" }
+        }
+      >
+        <HUD
+          moves={moves}
+          matched={matchedPairs}
+          total={totalPairs}
+          mascotState={mascotState}
+          onRestart={restart}
+          isLandscape={isLandscape}
+        />
       </div>
 
-      {/* Celebration Animation */}
+      {/* Game Area */}
+      <div
+        ref={containerRef}
+        className="flex-1 flex items-center justify-center overflow-hidden"
+        style={{ padding: 16 }}
+      >
+        <motion.div
+          style={{
+            width: gridW,
+            height: gridH,
+            display: "grid",
+            gridTemplateColumns: `repeat(${grid.cols}, ${cardSize}px)`,
+            gridTemplateRows: `repeat(${grid.rows}, ${cardSize}px)`,
+            gap: GAP,
+          }}
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+        >
+          {cards.map((card) => (
+            <Card
+              key={card.uid}
+              card={card}
+              onClick={() => handleCardClick(card.uid)}
+              disabled={locked || card.isMatched}
+              size={cardSize}
+            />
+          ))}
+        </motion.div>
+      </div>
+
+      {/* Win screen */}
       <AnimatePresence>
-        {isGameComplete && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 pointer-events-none flex items-center justify-center z-50"
-          >
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", duration: 0.6 }}
-              className="bg-white/90 backdrop-blur rounded-2xl p-8 text-center shadow-2xl"
-            >
-              <div className="text-6xl mb-4">🎉✨🏆✨🎉</div>
-              <h2 className="text-3xl font-bold text-purple-600 mb-2">
-                Well-done!
-              </h2>
-              <p className="text-gray-600">You're a memory champion!</p>
-            </motion.div>
-          </motion.div>
-        )}
+        {gameWon && <WellDoneScreen onRestart={restart} />}
       </AnimatePresence>
     </div>
   );
-};
-
-export default MatchingGame;
+}

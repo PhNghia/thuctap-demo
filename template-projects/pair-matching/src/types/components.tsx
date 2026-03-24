@@ -1,9 +1,19 @@
-import type { GameItem } from "./objects";
+import type { CardState } from "./objects";
 
+// ─── Single Card ──────────────────────────────────────────────────────────────
 export interface CardProps {
-  item: GameItem;
-  isFlipped: boolean;
-  isMatched: boolean;
-  cardBack: string;
+  card: CardState;
   onClick: () => void;
+  disabled: boolean;
+  size: number;
+}
+
+// ─── HUD ──────────────────────────────────────────────────────────────────────
+export interface HUDProps {
+  moves: number;
+  matched: number;
+  total: number;
+  mascotState: "idle" | "happy" | "sad" | null;
+  onRestart: () => void;
+  isLandscape: boolean;
 }

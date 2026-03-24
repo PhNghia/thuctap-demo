@@ -1,130 +1,121 @@
-import { useEffect, useState } from "react";
-import type { CardItem, GameData, GameItem } from "../types/objects";
+import type { CardState, GameConfig } from "../types/objects";
 
-// Helper function to shuffle array
-export const shuffleArray = <T,>(array: T[]): T[] => {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
+// ─── Grid Algorithm ───────────────────────────────────────────────────────────
+export function getOptimalGrid(totalCards: number): {
+  rows: number;
+  cols: number;
+} {
+  // Must be even number
+  const n = totalCards % 2 === 0 ? totalCards : totalCards + 1;
+  // Try to get a rectangle as square as possible, max ratio 2:1
+  let bestRows = 2,
+    bestCols = n / 2;
+  let bestScore = Infinity;
+  for (let rows = 2; rows <= n; rows++) {
+    if (n % rows !== 0) continue;
+    const cols = n / rows;
+    if (cols < rows) break;
+    const ratio = cols / rows;
+    const score = Math.abs(ratio - 1.5); // target ~3:2 ratio
+    if (score < bestScore) {
+      bestScore = score;
+      bestRows = rows;
+      bestCols = cols;
+    }
+  }
+  return { rows: bestRows, cols: bestCols };
+}
+
+export function buildDeck(config: GameConfig): CardState[] {
+  const { items, minTotalPairs = 4 } = config;
+
+  // Step 1: For each item, determine how many pairs it contributes
+  const pairCounts: Map<string, number> = new Map();
+  for (const item of items) {
+    pairCounts.set(item.id, item.minPairs ?? 1);
+  }
+
+  // Step 2: Sum pairs
+  let totalPairs = Array.from(pairCounts.values()).reduce((a, b) => a + b, 0);
+
+  // Step 3: Ensure at least minTotalPairs (2 pairs = 4 cards minimum)
+  const effectiveMin = Math.max(minTotalPairs, 2);
+  while (totalPairs < effectiveMin) {
+    // Add pairs from items round-robin
+    for (const item of items) {
+      if (totalPairs >= effectiveMin) break;
+      pairCounts.set(item.id, (pairCounts.get(item.id) ?? 1) + 1);
+      totalPairs++;
+    }
+  }
+
+  // Step 4: totalCards = totalPairs * 2; find grid
+  let totalCards = totalPairs * 2;
+  let grid = getOptimalGrid(totalCards);
+
+  // Step 5: Make sure totalCards fills the grid
+  const needed = grid.rows * grid.cols;
+  if (needed > totalCards) {
+    const extraPairs = (needed - totalCards) / 2;
+    for (let i = 0; i < extraPairs; i++) {
+      const item = items[i % items.length];
+      pairCounts.set(item.id, (pairCounts.get(item.id) ?? 1) + 1);
+    }
+    totalCards = needed;
+    // recalculate grid since total changed
+    grid = getOptimalGrid(totalCards);
+  }
+
+  // Step 6: Build card array
+  const cards: CardState[] = [];
+  for (const item of items) {
+    const count = pairCounts.get(item.id) ?? 1;
+    for (let p = 0; p < count; p++) {
+      for (let side = 0; side < 2; side++) {
+        cards.push({
+          uid: `${item.id}-p${p}-s${side}-${Math.random().toString(36).slice(2)}`,
+          itemId: item.id,
+          image: item.image,
+          keyword: item.keyword,
+          isFlipped: false,
+          isMatched: false,
+          pairIndex: p,
+        });
+      }
+    }
+  }
+
+  // Step 7: Shuffle
+  for (let i = cards.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-};
-
-// Helper to calculate optimal grid dimensions
-export const calculateGridDimensions = (
-  totalCards: number,
-): { rows: number; cols: number } => {
-  // Tìm số cột và hàng tối ưu cho grid hình chữ nhật
-  let cols = Math.ceil(Math.sqrt(totalCards));
-  let rows = Math.ceil(totalCards / cols);
-
-  // Điều chỉnh để grid không quá dài
-  const targetRatio = 4 / 3; // Tỉ lệ chiều rộng/cao mong muốn
-  while (cols / rows > targetRatio && rows < cols) {
-    rows++;
-    cols = Math.ceil(totalCards / rows);
+    [cards[i], cards[j]] = [cards[j], cards[i]];
   }
 
-  while (rows / cols > targetRatio && cols < rows) {
-    cols++;
-    rows = Math.ceil(totalCards / cols);
+  return cards;
+}
+
+export function isEmoji(str: string) {
+  if (!str) return false;
+
+  const s = str.trim();
+
+  // 1. If it looks like an image source → NOT emoji
+  if (
+    s.startsWith("http") ||
+    s.startsWith("data:") ||
+    s.startsWith("file:") ||
+    s.startsWith("/") ||
+    s.startsWith("./") ||
+    s.startsWith("../") ||
+    /^[a-zA-Z]:\\/.test(s) || // Windows path (C:\...)
+    /\.(png|jpe?g|gif|webp|svg)$/i.test(s)
+  ) {
+    return false;
   }
 
-  return { rows, cols };
-};
+  // 2. If it's short and contains emoji-like unicode → treat as emoji
+  // This uses Unicode property for emojis
+  const emojiRegex = /\p{Extended_Pictographic}/u;
 
-// Generate cards from game data với tùy chọn số lượng cặp cho từng item
-export const generateCards = (gameData: GameData): CardItem[] => {
-  const minPairs = Math.max(gameData.minPairs || 8, 4); // Tối thiểu 4 cặp (8 thẻ)
-  const itemsList: GameItem[] = [];
-
-  // Xử lý từng item với số lượng cặp riêng
-  gameData.items.forEach((item) => {
-    const minItemPairs = item.minPairs || 1;
-    // Thêm số lượng cặp theo yêu cầu tối thiểu của item
-    for (let i = 0; i < minItemPairs; i++) {
-      itemsList.push({ ...item });
-    }
-  });
-
-  // Nếu chưa đủ minPairs, thêm các item khác vào
-  let currentPairs = itemsList.length;
-  while (currentPairs < minPairs) {
-    const remainingNeeded = minPairs - currentPairs;
-    for (let i = 0; i < remainingNeeded && i < gameData.items.length; i++) {
-      itemsList.push({ ...gameData.items[i] });
-      currentPairs++;
-    }
-  }
-
-  // Tạo pairs cho mỗi item
-  let pairs: { imageSrc: string; keyword: string }[] = [];
-  itemsList.forEach((item) => {
-    pairs.push({ imageSrc: item.imageSrc, keyword: item.keyword });
-    pairs.push({ imageSrc: item.imageSrc, keyword: item.keyword }); // Tạo cặp
-  });
-
-  // Shuffle và tạo cards
-  const shuffledPairs = shuffleArray(pairs);
-  return shuffledPairs.map((pair, index) => ({
-    id: `${index}-${Date.now()}-${Math.random()}`,
-    imageSrc: pair.imageSrc,
-    keyword: pair.keyword,
-    isFlipped: false,
-    isMatched: false,
-  }));
-};
-
-export const useWindowSize = () => {
-  const [windowSize, setWindowSize] = useState({
-    width: typeof window !== "undefined" ? window.innerWidth : 0,
-    height: typeof window !== "undefined" ? window.innerHeight : 0,
-  });
-
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowSize({
-        width: window.innerWidth,
-        height: window.innerHeight,
-      });
-    };
-
-    window.addEventListener("resize", handleResize);
-    handleResize();
-
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  return windowSize;
-};
-
-export const useTiltEffect = (ref: React.RefObject<HTMLElement | null>) => {
-  const [tiltStyle, setTiltStyle] = useState({});
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!ref.current) return;
-
-    const { left, top, width, height } = ref.current.getBoundingClientRect();
-    const x = (e.clientX - left) / width;
-    const y = (e.clientY - top) / height;
-
-    // Giảm biên độ tilt từ 20 xuống 8
-    const rotateX = (y - 0.5) * 8;
-    const rotateY = (x - 0.5) * 8;
-
-    setTiltStyle({
-      transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.01)`,
-      transition: "transform 0.1s ease-out",
-    });
-  };
-
-  const handleMouseLeave = () => {
-    setTiltStyle({
-      transform: "perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)",
-      transition: "transform 0.3s ease-out",
-    });
-  };
-
-  return { tiltStyle, handleMouseMove, handleMouseLeave };
-};
+  return s.length <= 4 && emojiRegex.test(s);
+}
