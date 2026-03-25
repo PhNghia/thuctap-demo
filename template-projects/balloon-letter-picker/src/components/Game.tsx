@@ -20,10 +20,10 @@ const Game: React.FC = () => {
   
   // Hàm tính toán responsive
   const getBubbleSize = (width: number, height: number) => {
-    const byWidth = width * 0.11;
-    const byHeight = height * 0.16;
+    const byWidth = width * 0.06;
+    const byHeight = height * 0.08;
     const baseSize = Math.min(byWidth, byHeight);
-    return Math.max(250, Math.min(300, baseSize));
+    return Math.max(150, Math.min(200, baseSize));
   };
   
   const getFontSize = (bubbleSize: number) => {
@@ -35,15 +35,15 @@ const Game: React.FC = () => {
   };
   
   const getBubbleSpeed = (height: number) => {
-    return Math.max(2, Math.min(8, height / 140));
+    return Math.max(2, Math.min(6, height / 150));
   };
   
   const getCrosshairSize = (width: number) => {
-    return Math.max(20, Math.min(40, width / 35));
+    return Math.max(16, Math.min(28, width / 45));
   };
   
   const getLineWidth = (width: number) => {
-    return Math.max(2, Math.min(4, width / 400));
+    return Math.max(1.5, Math.min(3, width / 500));
   };
   
   const bubbleSize = getBubbleSize(canvasSize.width, canvasSize.height);
@@ -270,7 +270,7 @@ const Game: React.FC = () => {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const bubbleRadius = bubbleSize / 2;
-    const textOffset = 35;
+    const textOffset = 20;
     
     bubbles.forEach(bubble => {
       if (!bubble.isPopped) {
@@ -352,180 +352,190 @@ const Game: React.FC = () => {
 
   }, [bubbles, mousePos, loadedImages, canvasSize, bubbleSize, fontSize, hitRadius, explodeEffect, explodeImage]);
 
-  return (
+return (
+  <div style={{
+    position: 'relative',
+    width: '100%',
+    height: '100vh',
+    background: 'black',
+    overflow: 'hidden'
+  }}>
+    {/* Canvas full màn hình */}
+    <canvas
+      ref={canvasRef}
+      width={canvasSize.width}
+      height={canvasSize.height}
+      onClick={handleCanvasClick}
+      style={{ 
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        cursor: 'none',
+        display: 'block'
+      }}
+    />
+    
+    {/* WordDisplay đè lên canvas */}
     <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      padding: '10px',
-      minHeight: '100vh',
-      background: 'black'
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 10,
+      padding: '20px 20px 0 20px',
+      pointerEvents: 'none' // Cho phép click xuyên qua để bắn bong bóng
     }}>
-      {/* Toast thông báo */}
-      {toastMessage.visible && (
-        <div style={{
-          position: 'fixed',
-          top: '80px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: toastMessage.type === 'success' ? '#48bb78' : toastMessage.type === 'error' ? '#f56565' : '#4299e1',
-          color: 'white',
-          padding: '12px 24px',
-          borderRadius: '50px',
-          zIndex: 200,
-          fontSize: '18px',
-          fontWeight: 'bold',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-          animation: 'fadeInOut 1.5s ease'
-        }}>
-          {toastMessage.text}
-        </div>
-      )}
-      
-      {/* Nhân vật chúc mừng */}
-      {showCelebration && chippyImage && (
-        <div style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          zIndex: 300,
-          animation: 'celebrate 0.5s ease-out, float 0.5s ease-in-out infinite'
-        }}>
-          <img 
-            src={chippyImage.src} 
-            alt="Chippy" 
-            style={{
-              width: '500px',
-              height: '500px',
-              objectFit: 'contain'
-            }}
-          />
-        </div>
-      )}
-      
-      <WordDisplay 
-        currentWord={currentWord}
-        currentProgress={currentProgress}
-        score={score}
-        level={level}
-        totalWords={totalWords}
-      />
-      
-      <div ref={containerRef} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-        <canvas
-          ref={canvasRef}
-          width={canvasSize.width}
-          height={canvasSize.height}
-          onClick={handleCanvasClick}
-          style={{ 
-            border: '3px solid white', 
-            cursor: 'none',
-            borderRadius: '15px',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.4)',
-            width: '100%',
-            height: 'auto',
-            maxWidth: canvasSize.width,
-            maxHeight: canvasSize.height
+      <div style={{ pointerEvents: 'auto' }}> {/* Giữ cho WordDisplay vẫn tương tác được */}
+        <WordDisplay 
+          currentWord={currentWord}
+          currentProgress={currentProgress}
+          score={score}
+          level={level}
+          totalWords={totalWords}
+        />
+      </div>
+    </div>
+    
+    {/* Toast thông báo */}
+    {toastMessage.visible && (
+      <div style={{
+        position: 'fixed',
+        top: '80px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        background: toastMessage.type === 'success' ? '#48bb78' : toastMessage.type === 'error' ? '#f56565' : '#4299e1',
+        color: 'white',
+        padding: '12px 24px',
+        borderRadius: '50px',
+        zIndex: 200,
+        fontSize: '18px',
+        fontWeight: 'bold',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+        animation: 'fadeInOut 1.5s ease'
+      }}>
+        {toastMessage.text}
+      </div>
+    )}
+    
+    {/* Nhân vật chúc mừng */}
+    {showCelebration && chippyImage && (
+      <div style={{
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 300,
+        animation: 'celebrate 0.5s ease-out, float 0.5s ease-in-out infinite'
+      }}>
+        <img 
+          src={chippyImage.src} 
+          alt="Chippy" 
+          style={{
+            width: '300px',
+            height: '300px',
+            objectFit: 'contain'
           }}
         />
       </div>
-      
-      {gameOver && (
-        <div style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          background: 'white',
-          padding: 'min(60px, 8vw)',
-          borderRadius: 'min(30px, 5vw)',
-          boxShadow: '0 30px 60px rgba(0,0,0,0.5)',
-          textAlign: 'center',
-          zIndex: 1000,
-          minWidth: 'min(500px, 80vw)',
-          maxWidth: '90vw',
-          animation: 'slideIn 0.5s ease-out'
+    )}
+    
+    {gameOver && (
+      <div style={{
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        background: 'rgba(255,255,255,0.95)',
+        padding: 'min(60px, 8vw)',
+        borderRadius: 'min(30px, 5vw)',
+        boxShadow: '0 30px 60px rgba(0,0,0,0.5)',
+        textAlign: 'center',
+        zIndex: 1000,
+        minWidth: 'min(500px, 80vw)',
+        maxWidth: '90vw',
+        animation: 'slideIn 0.5s ease-out'
+      }}>
+        <h1 style={{ fontSize: 'min(80px, 12vw)', marginBottom: '10px' }}>🏆</h1>
+        <h2 style={{ 
+          fontSize: 'min(48px, 8vw)', 
+          color: '#667eea', 
+          marginBottom: '15px' 
         }}>
-          <h1 style={{ fontSize: 'min(80px, 12vw)', marginBottom: '10px' }}>🏆</h1>
-          <h2 style={{ 
-            fontSize: 'min(48px, 8vw)', 
-            color: '#667eea', 
-            marginBottom: '15px' 
-          }}>
-            YOU ARE THE WINNER!
-          </h2>
-          <p style={{ 
-            fontSize: 'min(36px, 6vw)', 
-            margin: '20px 0',
-            color: '#764ba2',
+          YOU ARE THE WINNER!
+        </h2>
+        <p style={{ 
+          fontSize: 'min(36px, 6vw)', 
+          margin: '20px 0',
+          color: '#764ba2',
+          fontWeight: 'bold'
+        }}>
+          {score} score
+        </p>
+        <p style={{ 
+          fontSize: 'min(24px, 4vw)', 
+          color: '#666', 
+          marginBottom: '30px' 
+        }}>
+          You have completed {totalWords} words!
+        </p>
+        <button 
+          onClick={handleResetGame}
+          style={{
+            padding: 'min(20px, 4vw) min(60px, 10vw)',
+            fontSize: 'min(28px, 5vw)',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '50px',
+            cursor: 'pointer',
+            transition: 'transform 0.2s',
+            boxShadow: '0 10px 20px rgba(102, 126, 234, 0.4)',
             fontWeight: 'bold'
-          }}>
-            {score} score
-          </p>
-          <p style={{ 
-            fontSize: 'min(24px, 4vw)', 
-            color: '#666', 
-            marginBottom: '30px' 
-          }}>
-            You have completed {totalWords} words!
-          </p>
-          <button 
-            onClick={handleResetGame}
-            style={{
-              padding: 'min(20px, 4vw) min(60px, 10vw)',
-              fontSize: 'min(28px, 5vw)',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '50px',
-              cursor: 'pointer',
-              transition: 'transform 0.2s',
-              boxShadow: '0 10px 20px rgba(102, 126, 234, 0.4)',
-              fontWeight: 'bold'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-            onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
-          >
-            PLAY AGAIN
-          </button>
-        </div>
-      )}
+          }}
+          onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+          onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          PLAY AGAIN
+        </button>
+      </div>
+    )}
 
-      <style>
-        {`
-          @keyframes slideIn {
-            from {
-              transform: translate(-50%, -30%);
-              opacity: 0;
-            }
-            to {
-              transform: translate(-50%, -50%);
-              opacity: 1;
-            }
+    <style>
+      {`
+        @keyframes slideIn {
+          from {
+            transform: translate(-50%, -30%);
+            opacity: 0;
           }
-          
-          @keyframes fadeInOut {
-            0% { opacity: 0; transform: translateX(-50%) scale(0.8); }
-            15% { opacity: 1; transform: translateX(-50%) scale(1); }
-            85% { opacity: 1; transform: translateX(-50%) scale(1); }
-            100% { opacity: 0; transform: translateX(-50%) scale(0.8); }
+          to {
+            transform: translate(-50%, -50%);
+            opacity: 1;
           }
-          
-          @keyframes celebrate {
-            0% { transform: translate(-50%, -50%) scale(0); }
-            100% { transform: translate(-50%, -50%) scale(1); }
-          }
-          
-          @keyframes float {
-            0% { transform: translate(-50%, -50%) translateY(0px); }
-            50% { transform: translate(-50%, -50%) translateY(-10px); }
-            100% { transform: translate(-50%, -50%) translateY(0px); }
-          }
-        `}
-      </style>
-    </div>
-  );
+        }
+        
+        @keyframes fadeInOut {
+          0% { opacity: 0; transform: translateX(-50%) scale(0.8); }
+          15% { opacity: 1; transform: translateX(-50%) scale(1); }
+          85% { opacity: 1; transform: translateX(-50%) scale(1); }
+          100% { opacity: 0; transform: translateX(-50%) scale(0.8); }
+        }
+        
+        @keyframes celebrate {
+          0% { transform: translate(-50%, -50%) scale(0); }
+          100% { transform: translate(-50%, -50%) scale(1); }
+        }
+        
+        @keyframes float {
+          0% { transform: translate(-50%, -50%) translateY(0px); }
+          50% { transform: translate(-50%, -50%) translateY(-10px); }
+          100% { transform: translate(-50%, -50%) translateY(0px); }
+        }
+      `}
+    </style>
+  </div>
+);
 };
 
 export default Game;

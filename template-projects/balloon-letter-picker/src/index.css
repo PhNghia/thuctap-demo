@@ -8,7 +8,7 @@
 html, body {
   width: 100%;
   height: 100%;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 body {
@@ -22,98 +22,10 @@ body {
 
 #root {
   width: 100%;
-  min-height: 100vh;
+  height: 100%;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
-}
-
-/* ========== RESPONSIVE ========== */
-
-/* Container chính */
-.game-wrapper {
-  width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 10px;
-}
-
-/* Mobile (dưới 768px) */
-@media (max-width: 768px) {
-  .game-wrapper {
-    padding: 5px;
-  }
-  
-  body {
-    font-size: 14px;
-  }
-}
-
-/* Tablet (768px - 1024px) */
-@media (min-width: 768px) and (max-width: 1024px) {
-  .game-wrapper {
-    padding: 10px;
-  }
-  
-  body {
-    font-size: 16px;
-  }
-}
-
-/* Desktop (trên 1024px) */
-@media (min-width: 1024px) {
-  .game-wrapper {
-    padding: 20px;
-  }
-  
-  body {
-    font-size: 18px;
-  }
-}
-
-/* Tùy chỉnh thanh cuộn (tùy chọn) */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #1a1a2e;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #667eea;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #764ba2;
-}
-
-/* Ẩn thanh cuộn ngang */
-body {
-  overflow-x: hidden;
-}
-
-/* Responsive cho canvas container */
-.canvas-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  margin: 0 auto;
-}
-
-/* Animation mượt mà cho resize */
-* {
-  transition: all 0.2s ease-in-out;
-}
-
-/* Tối ưu cho màn hình nhỏ */
-@media (max-width: 480px) {
-  .game-wrapper {
-    padding: 2px;
-  }
 }
