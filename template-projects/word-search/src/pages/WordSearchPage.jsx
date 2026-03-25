@@ -1,80 +1,73 @@
-import { useRef, useState } from "react";
-import BackgroundUpload from "../components/Builder/BackgroundUpload";
-import ItemsForm from "../components/Builder/ItemsForm";
+import { useEffect, useRef, useState } from "react";
 import GamePreview from "../components/Game/GamePreview";
 import { generateWordSearch } from "../engine/generateWordSearch";
-import { exportHTML } from "../utils/exportHTML";
-import { importHTML } from "../utils/importHTML";
 import { getBrightness } from "../utils/imageUtils";
 
+const customBackground = "";
+
 export default function WordSearchPage() {
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState(window.APP_DATA?.items || [
+    { word: "CAT", image: "🐱" },
+    { word: "FLOWER", image: "🌸" },
+    { word: "JUMP", image: "🦘" },
+    { word: "BIRD", image: "🐦" },
+    { word: "STAR", image: "⭐" },
+  ]);
+  const [background, setBackground] = useState(window.APP_DATA?.background || customBackground);
   const [grid, setGrid] = useState([]);
   const [foundCells, setFoundCells] = useState([]);
   const [placements, setPlacements] = useState([]);
   const [foundWords, setFoundWords] = useState([]);
-  const [background, setBackground] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const [textColor, setTextColor] = useState("#000");
   const [helperTextColor, setHelperTextColor] = useState("rgba(0, 0, 0, 0.72)");
   const [selectedCells, setSelectedCells] = useState([]);
+
   const isDraggingRef = useRef(false);
   const selectedRef = useRef([]);
   const directionRef = useRef(null);
-  const importInputRef = useRef(null);
-  const activePointerTypeRef = useRef(null);
 
-  const resetGameState = () => {
-    selectedRef.current = [];
-    directionRef.current = null;
-    isDraggingRef.current = false;
-    activePointerTypeRef.current = null;
-
-    setSelectedCells([]);
-    setFoundCells([]);
-    setFoundWords([]);
-  };
-
-  const updateTextColorFromBackground = async (base64) => {
-    if (!base64) {
-      setTextColor("#000");
-      setHelperTextColor("rgba(0, 0, 0, 0.72)");
-      return;
-    }
-
-    const brightness = await getBrightness(base64);
-    setTextColor(brightness < 128 ? "#fff" : "#000");
-    setHelperTextColor(
-      brightness < 128 ? "rgba(255, 255, 255, 0.82)" : "rgba(0, 0, 0, 0.72)"
-    );
-  };
-
-  const handleAddCard = () => {
-    setItems((prev) => [
-      ...prev,
-      {
-        word: "",
-        image: null
-      }
-    ]);
-  };
-
-  const handleGenerate = () => {
-    const words = items
-      .map((item) => item.word.trim().toUpperCase())
-      .filter((word) => word !== "");
+  const generateGame = () => {
+    const words = items.map((item) => item.word.trim().toUpperCase()).filter((word) => word);
 
     if (words.length === 0) {
-      alert("Please add at least one word.");
       return;
     }
 
     const result = generateWordSearch(words, 12);
     setGrid(result.grid);
     setPlacements(result.placements);
-    resetGameState();
+    setFoundCells([]);
+    setFoundWords([]);
+    setSelectedCells([]);
     setShowPreview(true);
   };
+
+  useEffect(() => {
+    generateGame();
+    // keep explicit background value rather than auto-switching based on items
+  }, []);
+
+  useEffect(() => {
+    if (!background) {
+      setTextColor("#000");
+      setHelperTextColor("rgba(0, 0, 0, 0.72)");
+      return;
+    }
+
+    getBrightness(background).then((brightness) => {
+      if (brightness < 128) {
+        setTextColor("#fff");
+        setHelperTextColor("rgba(255, 255, 255, 0.82)");
+      } else {
+        setTextColor("#000");
+        setHelperTextColor("rgba(0, 0, 0, 0.72)");
+      }
+    }).catch(() => {
+      setTextColor("#000");
+      setHelperTextColor("rgba(0, 0, 0, 0.72)");
+    });
+  }, [background]);
 
   const extendSelection = (row, col) => {
     if (!isDraggingRef.current) {
@@ -92,14 +85,12 @@ export default function WordSearchPage() {
     }
 
     const last = selectedRef.current[selectedRef.current.length - 1];
-
     if (!last) {
       return;
     }
 
     const dx = col - last.col;
     const dy = row - last.row;
-
     if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
       return;
     }
@@ -128,8 +119,6 @@ export default function WordSearchPage() {
 
   const handlePointerDown = (row, col, pointerType = "mouse") => {
     isDraggingRef.current = true;
-    activePointerTypeRef.current = pointerType;
-
     const cell = { row, col };
     selectedRef.current = [cell];
     setSelectedCells([cell]);
@@ -137,28 +126,22 @@ export default function WordSearchPage() {
   };
 
   const handlePointerEnter = (row, col) => {
-    if (activePointerTypeRef.current !== "mouse") {
-      return;
-    }
-
     extendSelection(row, col);
   };
 
   const handlePointerMove = (event) => {
-    if (!isDraggingRef.current || activePointerTypeRef.current === "mouse") {
+    if (!isDraggingRef.current) {
       return;
     }
 
     const target = document.elementFromPoint(event.clientX, event.clientY);
     const cell = target?.closest?.("[data-word-cell='true']");
-
     if (!cell) {
       return;
     }
 
     const row = Number(cell.dataset.row);
     const col = Number(cell.dataset.col);
-
     if (Number.isNaN(row) || Number.isNaN(col)) {
       return;
     }
@@ -180,7 +163,6 @@ export default function WordSearchPage() {
       const forwardMatch = placement.positions.every(
         (pos, index) => pos.row === coords[index].row && pos.col === coords[index].col
       );
-
       if (forwardMatch) {
         return placement.word;
       }
@@ -192,7 +174,6 @@ export default function WordSearchPage() {
           pos.col === coords[reverseIndex].col
         );
       });
-
       if (backwardMatch) {
         return placement.word;
       }
@@ -207,12 +188,10 @@ export default function WordSearchPage() {
     }
 
     isDraggingRef.current = false;
-    activePointerTypeRef.current = null;
     const foundWord = checkWord(selectedRef.current);
 
     if (foundWord) {
       const placement = placements.find((item) => item.word === foundWord);
-
       if (placement) {
         setFoundCells((prev) => [...prev, ...placement.positions]);
         setFoundWords((prev) => [...prev, foundWord]);
@@ -224,117 +203,8 @@ export default function WordSearchPage() {
     directionRef.current = null;
   };
 
-  const handleBackgroundFile = (file) => {
-    if (!file.type.startsWith("image/")) {
-      alert("Only image allowed");
-      return;
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = async () => {
-      const base64 = reader.result;
-      setBackground(base64);
-      await updateTextColorFromBackground(base64);
-    };
-
-    reader.readAsDataURL(file);
-  };
-
-  const handleItemImage = (file, index) => {
-    if (!file.type.startsWith("image/")) {
-      alert("Only image allowed");
-      return;
-    }
-
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      const base64 = reader.result;
-
-      setItems((prev) =>
-        prev.map((item, itemIndex) =>
-          itemIndex === index ? { ...item, image: base64 } : item
-        )
-      );
-    };
-
-    reader.readAsDataURL(file);
-  };
-
-  const handleImportFile = async (event) => {
-    const file = event.target.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
-    try {
-      const data = await importHTML(file);
-      setItems(data.items);
-      setGrid(data.grid);
-      setPlacements(data.placements);
-      setBackground(data.background);
-      await updateTextColorFromBackground(data.background);
-
-      resetGameState();
-      setShowPreview(data.grid.length > 0);
-    } catch (error) {
-      alert(error.message || "Import HTML failed.");
-    } finally {
-      event.target.value = "";
-    }
-  };
-
   return (
     <div className="game-page">
-      <div className="center-content">
-        <h3>Word Search Puzzle</h3>
-
-        <BackgroundUpload
-          background={background}
-          onUpload={handleBackgroundFile}
-        />
-
-        <ItemsForm
-          items={items}
-          setItems={setItems}
-          handleItemImage={handleItemImage}
-          handleAddCard={handleAddCard}
-        />
-
-        <div className="toolbar">
-          <div className="toolbar button">
-            <button onClick={handleGenerate}>Generate</button>
-            <button onClick={() => importInputRef.current?.click()}>
-              Import HTML
-            </button>
-            <button
-              onClick={() =>
-                exportHTML({
-                  grid,
-                  items,
-                  placements,
-                  background,
-                  textColor,
-                  helperTextColor
-                })
-              }
-            >
-              Export
-            </button>
-
-            <input
-              ref={importInputRef}
-              type="file"
-              accept=".html,text/html"
-              hidden
-              onChange={handleImportFile}
-            />
-          </div>
-        </div>
-      </div>
-
       {showPreview && (
         <GamePreview
           grid={grid}
@@ -349,7 +219,6 @@ export default function WordSearchPage() {
           onPointerEnter={handlePointerEnter}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
-          onClose={() => setShowPreview(false)}
         />
       )}
     </div>

@@ -1,7 +1,8 @@
-export const getBrightness = (base64) => {
+export const getBrightness = (url) => {
   return new Promise((resolve) => {
     const img = new Image();
-    img.src = base64;
+    img.crossOrigin = 'anonymous';
+    img.src = url;
 
     img.onload = () => {
       const canvas = document.createElement("canvas");
@@ -33,5 +34,7 @@ export const getBrightness = (base64) => {
 
       resolve(brightness);
     };
+
+    img.onerror = () => resolve(128); // default brightness
   });
 };
