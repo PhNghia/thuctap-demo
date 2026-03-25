@@ -8,6 +8,7 @@ const Game: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [globalMousePos, setGlobalMousePos] = useState({ x: 0, y: 0 });
   const [loadedImages, setLoadedImages] = useState<Map<string, HTMLImageElement>>(new Map());
   const [canvasSize, setCanvasSize] = useState({ width: 1200, height: 700 });
   
@@ -212,8 +213,12 @@ const Game: React.FC = () => {
   
   // Mouse move handler
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!canvasRef.current) return;
+  const handleGlobalMouseMove = (e: MouseEvent) => {
+    // Lưu vị trí chuột toàn màn hình
+    setGlobalMousePos({ x: e.clientX, y: e.clientY });
+    
+    // Tính vị trí tương đối trên canvas để bắn bong bóng
+    if (canvasRef.current) {
       const rect = canvasRef.current.getBoundingClientRect();
       const scaleX = canvasSize.width / rect.width;
       const scaleY = canvasSize.height / rect.height;
@@ -221,12 +226,13 @@ const Game: React.FC = () => {
         x: (e.clientX - rect.left) * scaleX,
         y: (e.clientY - rect.top) * scaleY
       });
-    };
-
-    const canvas = canvasRef.current;
-    canvas?.addEventListener('mousemove', handleMouseMove);
-    return () => canvas?.removeEventListener('mousemove', handleMouseMove);
-  }, [canvasSize]);
+    }
+  };
+  
+  // Lắng nghe trên toàn bộ window, không chỉ canvas
+  window.addEventListener('mousemove', handleGlobalMouseMove);
+  return () => window.removeEventListener('mousemove', handleGlobalMouseMove);
+}, [canvasSize]);
   
   // Canvas click handler
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
