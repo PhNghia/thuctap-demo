@@ -29,16 +29,20 @@ function normalize(d: WordSearchAppData): WordSearchAppData {
   return { ...d, _itemCounter: d._itemCounter ?? 0, items: d.items ?? [] }
 }
 
-export default function WordSearchEditor({ appData: raw, projectDir, onChange }: Props) {
+export default function WordSearchEditor({
+  appData: raw,
+  projectDir,
+  onChange
+}: Props): React.JSX.Element {
   const data = normalize(raw)
   const [tab, setTab] = useState<Tab>('words')
   const { resolved } = useSettings()
   const { items } = data
 
-  const nextItemId = () => {
+  const nextItemId = useCallback(() => {
     const c = data._itemCounter + 1
     return { id: `item-${c}`, counter: c }
-  }
+  }, [data._itemCounter])
 
   const addItem = useCallback(
     (initialImage?: string) => {
@@ -50,7 +54,7 @@ export default function WordSearchEditor({ appData: raw, projectDir, onChange }:
       }
       onChange({ ...data, _itemCounter: counter, items: [...items, i] })
     },
-    [data, items, resolved.prefillNames, onChange]
+    [data, items, resolved.prefillNames, onChange, nextItemId]
   )
 
   const addItemFromDrop = useCallback(
@@ -64,7 +68,7 @@ export default function WordSearchEditor({ appData: raw, projectDir, onChange }:
       }
       onChange({ ...data, _itemCounter: counter, items: [...items, i] })
     },
-    [data, items, projectDir, resolved.prefillNames, onChange]
+    [data, items, projectDir, resolved.prefillNames, onChange, nextItemId]
   )
 
   const updateItem = useCallback(
@@ -169,7 +173,7 @@ function WordsTab({
   onAddFromDrop: (fp: string) => void
   onUpdate: (id: string, p: Partial<WordSearchItem>) => void
   onDelete: (id: string) => void
-}) {
+}): React.JSX.Element {
   return (
     <Box>
       <StickyHeader
@@ -227,7 +231,7 @@ function WordCard({
   autoFocus?: boolean
   onUpdate: (id: string, p: Partial<WordSearchItem>) => void
   onDelete: (id: string) => void
-}) {
+}): React.JSX.Element {
   return (
     <Paper
       elevation={0}
@@ -280,7 +284,7 @@ function SettingsTab({
   data: WordSearchAppData
   projectDir: string
   onChange: (d: WordSearchAppData) => void
-}) {
+}): React.JSX.Element {
   return (
     <Box>
       <StickyHeader
