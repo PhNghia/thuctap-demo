@@ -22,7 +22,7 @@ body {
 }
 
 .page {
-  background: url("/assets/fundo.svg");
+  background: url("/images/fundo.svg");
   background-position: top;
   background-size: cover;
   background-repeat: no-repeat;
@@ -38,7 +38,7 @@ body {
 }
 
 .hammer {
-  background-image: url("/assets/hammer.svg");
+  background-image: url("/images/hammer.svg");
   background-position: top;
   background-size: contain;
   background-repeat: no-repeat;
@@ -70,7 +70,7 @@ main {
 }
 
 div.moles-hole {
-  background: url("/assets/toupeira6.svg");
+  background: url("/images/toupeira6.svg");
 
   background-size: contain;
   background-position: bottom;
@@ -91,12 +91,12 @@ div.moles-hole.down {
 }
 
 div.moles-hole.down.correct {
-  /* background-image: url('/assets/toupeira9.svg') !important; */
+  /* background-image: url('/images/toupeira9.svg') !important; */
   animation: moles-correct 500ms linear infinite !important;
 }
 
 div.moles-hole.down.wrong {
-  background-image: url('/assets/toupeira10.svg');
+  background-image: url('/images/toupeira10.svg');
   animation: moles-disappear 400ms ease-in-out forwards;
   animation-delay: 1s;
 }
@@ -237,7 +237,7 @@ button:hover {
 
 @keyframes moles-appear {
   0% {
-    background: url("/assets/toupeira6.svg");
+    background: url("/images/toupeira6.svg");
     background-size: contain;
     background-position: bottom;
     background-repeat: no-repeat;
@@ -247,7 +247,7 @@ button:hover {
   }
 
   33% {
-    background: url("/assets/toupeira1.svg");
+    background: url("/images/toupeira1.svg");
     background-size: contain;
     background-position: bottom;
     background-repeat: no-repeat;
@@ -257,7 +257,7 @@ button:hover {
   }
 
   66% {
-    background: url("/assets/toupeira2.svg");
+    background: url("/images/toupeira2.svg");
     background-size: contain;
     background-position: bottom;
     background-repeat: no-repeat;
@@ -267,7 +267,7 @@ button:hover {
   }
 
   100% {
-    background: url("/assets/toupeira3.svg");
+    background: url("/images/toupeira3.svg");
     background-size: contain;
     background-position: bottom;
     background-repeat: no-repeat;
@@ -279,7 +279,7 @@ button:hover {
 
 @keyframes moles-disappear {
   0% {
-    background: url("/assets/toupeira3.svg");
+    background: url("/images/toupeira3.svg");
     background-size: contain;
     background-position: bottom;
     background-repeat: no-repeat;
@@ -289,7 +289,7 @@ button:hover {
   }
 
   33% {
-    background: url("/assets/toupeira4.svg");
+    background: url("/images/toupeira4.svg");
     background-size: contain;
     background-position: bottom;
     background-repeat: no-repeat;
@@ -299,7 +299,7 @@ button:hover {
   }
 
   66% {
-    background: url("/assets/toupeira5.svg");
+    background: url("/images/toupeira5.svg");
     background-size: contain;
     background-position: bottom;
     background-repeat: no-repeat;
@@ -309,7 +309,7 @@ button:hover {
   }
 
   100% {
-    background: url("/assets/toupeira6.svg");
+    background: url("/images/toupeira6.svg");
     background-size: contain;
     background-position: bottom;
     background-repeat: no-repeat;
@@ -321,7 +321,7 @@ button:hover {
 
 @keyframes moles-correct {
   0% {
-    background: url("/assets/toupeira7.svg");
+    background: url("/images/toupeira7.svg");
     background-size: contain;
     background-position: bottom;
     background-repeat: no-repeat;
@@ -330,7 +330,7 @@ button:hover {
   }
 
   50% {
-    background: url("/assets/toupeira8.svg");
+    background: url("/images/toupeira8.svg");
     background-size: contain;
     background-position: bottom;
     background-repeat: no-repeat;
@@ -339,7 +339,7 @@ button:hover {
   }
 
   100% {
-    background: url("/assets/toupeira9.svg");
+    background: url("/images/toupeira9.svg");
     background-size: contain;
     background-position: bottom;
     background-repeat: no-repeat;
@@ -355,7 +355,7 @@ button:hover {
 }
 
 .sign-box-wood {
-  background: url("/assets/wood.svg");
+  background: url("/images/wood.svg");
   background-size: contain;
   background-position: bottom;
   background-repeat: no-repeat;

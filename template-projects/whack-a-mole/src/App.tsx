@@ -6,23 +6,23 @@ const data : Question[] = [
   {
     groupId: 1,
     question: "Con chuột đang ở vị trí nào?",
-    questionImage: "./assets/toupeira6.svg",
+    questionImage: "./images/toupeira6.svg",
     answerText: "Dưới đất",
-    answerImage: "./assets/toupeira6.svg"
+    answerImage: "./images/toupeira6.svg"
   },
   {
     groupId: 2,
     question: "Con chuột đang ở vị trí nào?",
-    questionImage: "./assets/toupeira3.svg",
+    questionImage: "./images/toupeira3.svg",
     answerText: "Trên mặt đất",
-    answerImage: "./assets/toupeira3.svg"
+    answerImage: "./images/toupeira3.svg"
   },
   {
     groupId: 3,
     question: "Con chuột đang ở vị trí nào?",
-    questionImage: "./assets/toupeira2.svg",
+    questionImage: "./images/toupeira2.svg",
     answerText: "Nửa trên nửa dưới",
-    answerImage: "./assets/toupeira2.svg"
+    answerImage: "./images/toupeira2.svg"
   }
 ];
 
@@ -50,6 +50,7 @@ function App() {
 
   return (
     <GamePage
+      currentIndex={currentIndex}
       key={currentQuestion.groupId} // 🔥 reset game mỗi câu
       question={currentQuestion}
       answerPool={answerPool}

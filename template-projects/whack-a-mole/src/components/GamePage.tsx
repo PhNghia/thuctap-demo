@@ -6,12 +6,14 @@ import HammerCursor from "./HammerCursor";
 const TOTAL = 10;
 
 type Props = {
+  currentIndex: number,
   question: Question;
   answerPool: Answer[];
   onCorrect: () => void;
 };
 
 export default function GamePage({
+  currentIndex,
   question,
   answerPool,
   onCorrect
@@ -219,7 +221,7 @@ export default function GamePage({
          */}
         <div className="sign-box-wood"></div>
         <div className="container">
-          <div className="sign-text">{question.groupId + ". " + question.question}</div>
+          <div className="sign-text">{currentIndex + 1 + ". " + question.question}</div>
           <img className="question-img" src={question.questionImage} alt="" />
         </div>
       </div>
