@@ -16,4 +16,5 @@ export interface HUDProps {
   mascotState: "idle" | "happy" | "sad" | null;
   onRestart: () => void;
   isLandscape: boolean;
+  uiScale: number;
 }

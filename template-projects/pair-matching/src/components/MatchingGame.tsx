@@ -54,7 +54,16 @@ export default function MatchingGame() {
   }, []);
 
   // Compute card size to fill available space
-  const GAP = 10;
+  // Proportional UI Scale (base on 768px height for landscape)
+  const uiScale = useMemo(() => {
+    const base = 768;
+    return isLandscape
+      ? Math.max(window.innerHeight / base, 0.6)
+      : Math.max(window.innerWidth / base, 0.6);
+  }, [isLandscape]);
+
+  // Compute card size to fill available space
+  const GAP = 12 * uiScale;
   const cardSize = useMemo(() => {
     if (!containerSize.w || !containerSize.h) return 80;
     const maxByCols = Math.floor(
@@ -65,7 +74,7 @@ export default function MatchingGame() {
     );
     const size = Math.min(maxByCols, maxByRows);
     return Math.max(size, 48); // minimum 48px
-  }, [containerSize, grid]);
+  }, [containerSize, grid, GAP]);
 
   const gridW = cardSize * grid.cols + GAP * (grid.cols - 1);
   const gridH = cardSize * grid.rows + GAP * (grid.rows - 1);
@@ -153,21 +162,26 @@ export default function MatchingGame() {
           "linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)",
         fontFamily: "'Nunito', 'Comic Sans MS', cursive, sans-serif",
         flexDirection: isLandscape ? "row" : "column",
-        alignItems: "stretch",
+        alignItems: "center",
+        justifyContent: "space-evenly",
       }}
     >
       {/* HUD Panel */}
       <div
-        className="shrink-0 flex items-center justify-center p-4 ml-8 relative m-10"
+        className="shrink-0 flex items-center relative"
         style={
           isLandscape
             ? {
-                width: "clamp(240px, 20vw, 400px)", // Responsive width
-                justifyContent: "flex-start", // Align top
+                width: 280 * uiScale,
+                height: "90%",
                 flexDirection: "column",
-                overflowY: "visible", // Allow banner to pop out if needed
               }
-            : { height: "auto", maxHeight: "35vh", justifyContent: "center" }
+            : {
+                width: "95%",
+                height: "auto",
+                maxHeight: "30vh",
+                flexDirection: "row",
+              }
         }
       >
         <HUD
@@ -177,14 +191,19 @@ export default function MatchingGame() {
           mascotState={mascotState}
           onRestart={restart}
           isLandscape={isLandscape}
+          uiScale={uiScale}
         />
       </div>
 
       {/* Game Area */}
       <div
         ref={containerRef}
-        className="flex-1 flex items-center justify-center overflow-hidden m-10"
-        style={{ padding: 16 }}
+        className="flex items-center justify-center overflow-hidden"
+        style={{
+          width: isLandscape ? "65vw" : "95vw",
+          height: isLandscape ? "90vh" : "60vh",
+          padding: 20 * uiScale,
+        }}
       >
         <motion.div
           style={{

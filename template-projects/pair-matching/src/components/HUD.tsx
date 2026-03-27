@@ -9,65 +9,90 @@ export function HUD({
   mascotState,
   onRestart,
   isLandscape,
+  uiScale,
 }: HUDProps) {
   const progress = total > 0 ? matched / total : 0;
 
+  const baseGap = 16 * uiScale;
+
   return (
     <div
-      className={`flex gap-4 ${
-        isLandscape
-          ? "flex-col justify-start"
-          : "flex-row items-center flex-wrap justify-between"
+      className={`flex items-stretch justify-evenly ${
+        isLandscape ? "flex-col h-full" : "flex-row items-center w-full"
       }`}
-      style={isLandscape ? { minWidth: 180, maxWidth: 220 } : {}}
+      style={{
+        gap: baseGap,
+        width: "100%",
+      }}
     >
+      {/* Mascot banner - Moved inside flow and scaled */}
+      <div
+        className={isLandscape ? "w-full" : "fixed bottom-4 left-4 right-4 z-50"}
+        style={{
+          minHeight: 60 * uiScale,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <MascotBanner state={mascotState} uiScale={uiScale} />
+      </div>
+
       {/* Title */}
       <motion.h2
-        className="font-black text-transparent bg-clip-text text-xl"
-        style={{ backgroundImage: "linear-gradient(90deg, #a78bfa, #60a5fa)" }}
+        className="font-black text-transparent bg-clip-text text-center"
+        style={{
+          backgroundImage: "linear-gradient(90deg, #a78bfa, #60a5fa)",
+          fontSize: 28 * uiScale,
+        }}
       >
         🃏 Matching
       </motion.h2>
 
       {/* Stats */}
-      <div className={`flex gap-3 ${isLandscape ? "flex-col" : "flex-row"}`}>
+      <div
+        className={`flex ${isLandscape ? "flex-col" : "flex-row"}`}
+        style={{ gap: baseGap * 0.75 }}
+      >
         <div
-          className="rounded-2xl px-4 py-2 text-center shadow"
+          className="rounded-2xl text-center shadow"
           style={{
-            padding: "clamp(0.5rem, 1.5vh, 1.5rem)", // Scales padding based on height
+            padding: 16 * uiScale,
             background: "rgba(124,58,237,0.18)",
-            border: "1px solid rgba(167,139,250,0.3)",
+            border: `${1 * uiScale}px solid rgba(167,139,250,0.3)`,
+            flex: 1,
           }}
         >
           <div
-            style={{ fontSize: "clamp(0.7rem, 1.2vh, 1rem)" }}
+            style={{ fontSize: 14 * uiScale }}
             className="text-purple-300 font-semibold"
           >
             Lượt đi
           </div>
           <div
-            style={{ fontSize: "clamp(1.5rem, 3vh, 2.5rem)" }}
+            style={{ fontSize: 32 * uiScale }}
             className="font-black text-white"
           >
             {moves}
           </div>
         </div>
         <div
-          className="rounded-2xl px-4 py-2 text-center shadow"
+          className="rounded-2xl text-center shadow"
           style={{
-            padding: "clamp(0.5rem, 1.5vh, 1.5rem)", // Scales padding based on height
+            padding: 16 * uiScale,
             background: "rgba(16,185,129,0.18)",
-            border: "1px solid rgba(52,211,153,0.3)",
+            border: `${1 * uiScale}px solid rgba(52,211,153,0.3)`,
+            flex: 1,
           }}
         >
           <div
-            style={{ fontSize: "clamp(0.7rem, 1.2vh, 1rem)" }}
-            className="text-emerald-300 font-semibold"
+            style={{ fontSize: 14 * uiScale }}
+            className="text-purple-300 font-semibold"
           >
             Đã ghép
           </div>
           <div
-            style={{ fontSize: "clamp(1.5rem, 3vh, 2.5rem)" }}
+            style={{ fontSize: 32 * uiScale }}
             className="font-black text-white"
           >
             {matched}/{total}
@@ -76,13 +101,20 @@ export function HUD({
       </div>
 
       {/* Progress bar */}
-      <div className={isLandscape ? "w-full" : "flex-1 min-w-32"}>
-        <div className="text-xs text-purple-300 mb-1 font-semibold">
+      <div className={isLandscape ? "w-full" : "flex-1 mx-4"}>
+        <div
+          className="text-purple-300 mb-1 font-semibold text-center"
+          style={{ fontSize: 12 * uiScale }}
+        >
           Tiến độ
         </div>
         <div
-          className="rounded-full h-3 w-full overflow-hidden"
-          style={{ background: "rgba(255,255,255,0.1)" }}
+          className="rounded-full overflow-hidden"
+          style={{
+            background: "rgba(255,255,255,0.1)",
+            height: 12 * uiScale,
+            width: "100%",
+          }}
         >
           <motion.div
             className="h-full rounded-full"
@@ -93,31 +125,41 @@ export function HUD({
         </div>
       </div>
 
-      {/* Mascot banner */}
-      <div className={isLandscape ? "w-full" : ""}>
-        <MascotBanner state={mascotState} />
+      {/* Instructions */}
+      <div
+        className="rounded-xl leading-relaxed text-center"
+        style={{
+          padding: 12 * uiScale,
+          fontSize: 13 * uiScale,
+          background: "rgba(255,255,255,0.05)",
+          border: `${1 * uiScale}px solid rgba(167,139,250,0.15)`,
+          color: "#e9d5ff",
+        }}
+      >
+        👆 Lật 2 thẻ bài để tìm cặp giống nhau!
       </div>
 
       {/* Restart */}
-      <motion.button
-        onClick={onRestart}
-        className="rounded-xl px-4 py-2 text-sm font-bold text-white shadow"
-        style={{ background: "linear-gradient(135deg, #6d28d9, #4c1d95)" }}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        🔄 Chơi lại
-      </motion.button>
-
-      {/* Instructions */}
-      <div
-        className="rounded-xl p-3 text-xs text-purple-200 leading-relaxed"
-        style={{
-          background: "rgba(255,255,255,0.05)",
-          border: "1px solid rgba(167,139,250,0.15)",
-        }}
-      >
-        <p>👆 Lật 2 thẻ bài để tìm cặp giống nhau!</p>
+      <div className="flex justify-center">
+        <motion.button
+          onClick={onRestart}
+          className="font-bold text-white shadow-lg flex items-center justify-center"
+          style={{
+            background: "linear-gradient(135deg, #6d28d9, #4c1d95)",
+            paddingLeft: 20 * uiScale,
+            paddingRight: 20 * uiScale,
+            paddingTop: 10 * uiScale,
+            paddingBottom: 10 * uiScale,
+            borderRadius: 12 * uiScale,
+            fontSize: 16 * uiScale,
+            gap: 8 * uiScale,
+          }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <span style={{ fontSize: 18 * uiScale }}>🔄</span>
+          Chơi lại
+        </motion.button>
       </div>
     </div>
   );
