@@ -4,41 +4,58 @@ import { AnimatePresence, motion } from "framer-motion";
 export default function MascotBanner({
   state,
   uiScale,
+  isLandscape,
 }: {
   state: "idle" | "happy" | "sad" | null;
   uiScale: number;
+  isLandscape: boolean;
 }) {
-  if (!state || state === "idle") return null;
   return (
-    <AnimatePresence>
-      <motion.div
-        key={state}
-        initial={{ scale: 0, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0, opacity: 0, y: -20 }}
-        transition={{ type: "spring", stiffness: 400, damping: 20 }}
-        className={`
-          flex items-center justify-center rounded-2xl text-center font-black shadow-2xl border-2
-          ${
-            state === "happy"
-              ? "bg-linear-to-r from-green-400 to-emerald-500 text-white border-green-300"
-              : "bg-linear-to-r from-red-400 to-pink-500 text-white border-red-300"
-          }
-        `}
-        style={{
-          paddingTop: 16 * uiScale,
-          paddingBottom: 16 * uiScale,
-          paddingLeft: 24 * uiScale,
-          paddingRight: 24 * uiScale,
-          fontSize: 16 * uiScale,
-          borderWidth: 2 * uiScale,
-          borderRadius: 16 * uiScale,
-        }}
-      >
-        {state === "happy"
-          ? "🎉 Tuyệt vời! Đúng rồi!"
-          : "😢 Sai rồi! Thử lại nhé!"}
-      </motion.div>
+    <AnimatePresence mode="wait">
+      {state && state !== "idle" && (
+        <div
+          className="fixed inset-0 pointer-events-none z-[100] flex items-end justify-center"
+          style={{
+            paddingBottom: isLandscape ? 60 * uiScale : "min(75vh, 600px)",
+            alignItems: isLandscape ? "flex-end" : "flex-start",
+            paddingTop: isLandscape ? 0 : "20vh",
+          }}
+        >
+          <motion.div
+            key={state}
+            initial={{ scale: 0, opacity: 0, y: isLandscape ? 50 : -50 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0, opacity: 0, y: isLandscape ? 50 : -50 }}
+            transition={{
+              type: "spring",
+              stiffness: 400,
+              damping: 25,
+            }}
+            className={`
+              pointer-events-auto
+              flex items-center justify-center rounded-3xl text-center font-black shadow-2xl border-4
+              ${
+                state === "happy"
+                  ? "bg-linear-to-r from-green-400 to-emerald-500 text-white border-green-300"
+                  : "bg-linear-to-r from-red-400 to-pink-500 text-white border-red-300"
+              }
+            `}
+            style={{
+              paddingTop: 18 * uiScale,
+              paddingBottom: 18 * uiScale,
+              paddingLeft: 30 * uiScale,
+              paddingRight: 30 * uiScale,
+              fontSize: 20 * uiScale,
+              borderRadius: 24 * uiScale,
+              maxWidth: "90vw",
+            }}
+          >
+            {state === "happy"
+              ? "🎉 Tuyệt vời! Đúng rồi!"
+              : "😢 Sai rồi! Thử lại nhé!"}
+          </motion.div>
+        </div>
+      )}
     </AnimatePresence>
   );
 }

@@ -45,7 +45,7 @@ export default function MatchingGame() {
     if (containerRef.current) obs.observe(containerRef.current);
 
     const onResize = () =>
-      setIsLandscape(window.innerWidth > window.innerHeight);
+      setIsLandscape(window.innerWidth / window.innerHeight >= 1.3);
     window.addEventListener("resize", onResize);
     return () => {
       obs.disconnect();
@@ -54,12 +54,15 @@ export default function MatchingGame() {
   }, []);
 
   // Compute card size to fill available space
-  // Proportional UI Scale (base on 768px height for landscape)
+  // Proportional UI Scale
   const uiScale = useMemo(() => {
-    const base = 768;
-    return isLandscape
-      ? Math.max(window.innerHeight / base, 0.6)
-      : Math.max(window.innerWidth / base, 0.6);
+    if (isLandscape) {
+      // Landscape: base on 768px height
+      return Math.max(window.innerHeight / 768, 0.8);
+    } else {
+      // Portrait: base on 380px width (typical mobile)
+      return Math.max(window.innerWidth / 380, 0.85);
+    }
   }, [isLandscape]);
 
   // Compute card size to fill available space
@@ -73,7 +76,7 @@ export default function MatchingGame() {
       (containerSize.h - GAP * (grid.rows - 1)) / grid.rows,
     );
     const size = Math.min(maxByCols, maxByRows);
-    return Math.max(size, 48); // minimum 48px
+    return Math.max(size, 40); // minimum 40px
   }, [containerSize, grid, GAP]);
 
   const gridW = cardSize * grid.cols + GAP * (grid.cols - 1);
@@ -163,7 +166,8 @@ export default function MatchingGame() {
         fontFamily: "'Nunito', 'Comic Sans MS', cursive, sans-serif",
         flexDirection: isLandscape ? "row" : "column",
         alignItems: "center",
-        justifyContent: "space-evenly",
+        justifyContent: "center",
+        gap: 30 * uiScale,
       }}
     >
       {/* HUD Panel */}
@@ -172,14 +176,14 @@ export default function MatchingGame() {
         style={
           isLandscape
             ? {
-                width: 280 * uiScale,
+                width: 300 * uiScale,
                 height: "90%",
                 flexDirection: "column",
+                justifyContent: "flex-start",
               }
             : {
                 width: "95%",
                 height: "auto",
-                maxHeight: "30vh",
                 flexDirection: "row",
               }
         }
@@ -195,14 +199,13 @@ export default function MatchingGame() {
         />
       </div>
 
-      {/* Game Area */}
       <div
         ref={containerRef}
         className="flex items-center justify-center overflow-hidden"
         style={{
-          width: isLandscape ? "65vw" : "95vw",
+          width: isLandscape ? "70vw" : "95vw",
           height: isLandscape ? "90vh" : "60vh",
-          padding: 20 * uiScale,
+          padding: 10 * uiScale,
         }}
       >
         <motion.div
