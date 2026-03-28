@@ -3231,6 +3231,7 @@ __metadata:
     react: "npm:^19.2.1"
     react-dom: "npm:^19.2.1"
     react-dropzone: "npm:^15.0.0"
+    react-hotkeys-hook: "npm:^5.2.4"
     react-router-dom: "npm:^7.13.1"
     tailwindcss: "npm:^4.2.2"
     typescript: "npm:^5.9.3"
@@ -6196,6 +6197,16 @@ __metadata:
   peerDependencies:
     react: ">= 16.8 || 18.0.0"
   checksum: 10c0/fb7b48a709fdd26273707f7aca5c0e77fce2b9c9201122645d3ecfb07ecfbb89e2495273ea141994f0ed0838ee79f27832c0855b2c598b377b342c3965608b54
+  languageName: node
+  linkType: hard
+
+"react-hotkeys-hook@npm:^5.2.4":
+  version: 5.2.4
+  resolution: "react-hotkeys-hook@npm:5.2.4"
+  peerDependencies:
+    react: ">=16.8.0"
+    react-dom: ">=16.8.0"
+  checksum: 10c0/8163a22d5add0033ae30951bb93d48f0a894670d6272668744ef18e98f20df792fff2fb0cb03834a2322bafbc99bca277ac9dacd5676705a65ec4bc13767785b
   languageName: node
   linkType: hard
 

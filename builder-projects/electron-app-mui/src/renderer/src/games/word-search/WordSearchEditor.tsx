@@ -3,7 +3,7 @@ import CollectionsIcon from '@mui/icons-material/Collections'
 import DeleteIcon from '@mui/icons-material/Delete'
 import SettingsIcon from '@mui/icons-material/Settings'
 import { Alert, Box, Button, Collapse, IconButton, Paper, Tooltip, Typography } from '@mui/material'
-import { useEditorShortcuts } from '@renderer/hooks/useEditorShortcuts'
+import { useAddShortcut } from '@renderer/hooks/useAddShortcut'
 import { useCallback, useState } from 'react'
 import {
   AtoZWordField,
@@ -86,8 +86,8 @@ export default function WordSearchEditor({
     [data, items, onChange]
   )
 
-  useEditorShortcuts(() => {
-    addItem()
+  useAddShortcut({
+    onTier1: addItem
   })
 
   // Basic validation

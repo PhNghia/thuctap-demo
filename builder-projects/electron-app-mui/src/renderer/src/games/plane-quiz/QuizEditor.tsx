@@ -21,7 +21,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import { useEditorShortcuts } from '@renderer/hooks/useEditorShortcuts'
+import { useAddShortcut } from '@renderer/hooks/useAddShortcut'
 import React, { useCallback } from 'react'
 import {
   EmptyState,
@@ -164,7 +164,9 @@ export default function QuizEditor({
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
   // Quiz has only one unit (question), so all tiers do the same
-  useEditorShortcuts(() => addQuestion())
+  useAddShortcut({
+    onTier1: addQuestion
+  })
 
   // ── Validation ────────────────────────────────────────────────────────────
   const noText = questions.filter((q) => !q.question.trim())

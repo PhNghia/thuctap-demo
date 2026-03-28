@@ -14,7 +14,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import { useEditorShortcuts } from '@renderer/hooks/useEditorShortcuts'
+import { useAddShortcut } from '@renderer/hooks/useAddShortcut'
 import { JSX, useCallback, useState } from 'react'
 import {
   EmptyState,
@@ -97,8 +97,8 @@ export default function PairMatchingEditor({
     [data, items, onChange]
   )
 
-  useEditorShortcuts(() => {
-    addItem()
+  useAddShortcut({
+    onTier1: addItem
   })
 
   const unnamedI = items.filter((i) => !i.keyword.trim())

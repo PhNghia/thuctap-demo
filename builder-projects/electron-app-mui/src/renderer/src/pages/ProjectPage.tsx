@@ -31,11 +31,13 @@ import {
   Typography
 } from '@mui/material'
 import { JSX, useCallback, useEffect, useRef, useState } from 'react'
+import { useHotkeys } from 'react-hotkeys-hook'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import SettingsPanel from '../components/SettingsPanel'
 import { useSettings } from '../context/SettingsContext'
 import { GAME_REGISTRY } from '../games/registry'
-import { useHistory } from '../hooks/useHistory'
+import { useProjectHistory } from '../hooks/useProjectHistory'
+import { useProjectShortcuts } from '../hooks/useProjectShortcuts'
 import { AnyAppData, GameTemplate, ProjectFile, ProjectMeta } from '../types'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -86,7 +88,7 @@ export default function ProjectPage(): JSX.Element {
   const [templates, setTemplates] = useState<GameTemplate[]>([])
 
   // History tracks only the game data, not meta
-  const history = useHistory<AnyAppData>(locationState?.data.appData ?? ({} as AnyAppData))
+  const history = useProjectHistory<AnyAppData>(locationState?.data.appData ?? ({} as AnyAppData))
 
   // Load templates list for display names
   useEffect(() => {
@@ -284,29 +286,55 @@ export default function ProjectPage(): JSX.Element {
   }
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
-  useEffect(() => {
-    const handler = (e: KeyboardEvent): void => {
-      const ctrl = e.ctrlKey || e.metaKey
-      if (ctrl && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault()
-        history.undo()
-      }
-      if (ctrl && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
-        e.preventDefault()
-        history.redo()
-      }
-      if (ctrl && e.key === 's' && !e.shiftKey) {
-        e.preventDefault()
-        handleSave()
-      }
-      if (ctrl && e.key === 's' && e.shiftKey) {
-        e.preventDefault()
-        handleSaveAs()
-      }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [history, handleSave, handleSaveAs])
+  // Undo/Redo: Ctrl+Z / Ctrl+Y or Ctrl+Shift+Z
+  useHotkeys(
+    'ctrl+z',
+    (e) => {
+      if (e.shiftKey) return // Let ctrl+shift+z handle redo
+      if (!history.canUndo) return
+      e.preventDefault()
+      history.undo()
+    },
+    { enableOnFormTags: false, enabled: history.canUndo }
+  )
+
+  useHotkeys(
+    'ctrl+y, ctrl+shift+z',
+    (e) => {
+      if (!history.canRedo) return
+      e.preventDefault()
+      history.redo()
+    },
+    { enableOnFormTags: false, enabled: history.canRedo }
+  )
+
+  // Save: Ctrl+S
+  useHotkeys(
+    'ctrl+s',
+    (e) => {
+      if (e.shiftKey) return // Let ctrl+shift+s handle Save As
+      e.preventDefault()
+      handleSave()
+    },
+    { enableOnFormTags: false }
+  )
+
+  // Save As: Ctrl+Shift+S
+  useHotkeys(
+    'ctrl+shift+s',
+    (e) => {
+      e.preventDefault()
+      handleSaveAs()
+    },
+    { enableOnFormTags: false }
+  )
+
+  // Project actions: Preview and Export
+  useProjectShortcuts({
+    onPreview: handlePreview,
+    onExportFolder: () => handleExport('folder'),
+    onExportZip: () => handleExport('zip')
+  })
 
   if (!meta || !templateId) {
     return (
@@ -420,33 +448,37 @@ export default function ProjectPage(): JSX.Element {
               <SettingsIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Button
-            size="small"
-            startIcon={<SaveIcon />}
-            variant={isDirty ? 'contained' : 'outlined'}
-            color={isDirty ? 'primary' : 'inherit'}
-            onClick={handleSave}
-          >
-            Save
-          </Button>
+          <Tooltip title="Save (Ctrl+S)">
+            <Button
+              size="small"
+              startIcon={<SaveIcon />}
+              variant={isDirty ? 'contained' : 'outlined'}
+              color={isDirty ? 'primary' : 'inherit'}
+              onClick={handleSave}
+            >
+              Save
+            </Button>
+          </Tooltip>
           <Tooltip title="Save As (Ctrl+Shift+S)">
             <IconButton size="small" onClick={handleSaveAs}>
               <SaveAsIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Preview">
+          <Tooltip title="Preview (Ctrl+P)">
             <IconButton size="small" onClick={handlePreview}>
               <PreviewIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Button
-            size="small"
-            startIcon={<FileDownloadIcon />}
-            variant="outlined"
-            onClick={(e) => setExportAnchor(e.currentTarget)}
-          >
-            Export
-          </Button>
+          <Tooltip title="Export">
+            <Button
+              size="small"
+              startIcon={<FileDownloadIcon />}
+              variant="outlined"
+              onClick={(e) => setExportAnchor(e.currentTarget)}
+            >
+              Export
+            </Button>
+          </Tooltip>
         </Box>
       </Box>
 
@@ -486,14 +518,40 @@ export default function ProjectPage(): JSX.Element {
           <ListItemIcon>
             <DriveFileMoveIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText primary="Export to folder" secondary="Copies game + assets" />
+          <ListItemText
+            primary="Export to folder"
+            secondary={
+              <>
+                Copies game + assets
+                <Box
+                  component="span"
+                  sx={{ display: 'block', fontSize: '0.65rem', color: 'text.secondary' }}
+                >
+                  Ctrl+Shift+P
+                </Box>
+              </>
+            }
+          />
         </MenuItem>
         <Divider />
         <MenuItem onClick={() => handleExport('zip')}>
           <ListItemIcon>
             <FolderZipIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText primary="Export as ZIP" secondary="Single archive" />
+          <ListItemText
+            primary="Export as ZIP"
+            secondary={
+              <>
+                Single archive
+                <Box
+                  component="span"
+                  sx={{ display: 'block', fontSize: '0.65rem', color: 'text.secondary' }}
+                >
+                  Ctrl+Alt+P
+                </Box>
+              </>
+            }
+          />
         </MenuItem>
       </Menu>
 

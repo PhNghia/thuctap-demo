@@ -14,7 +14,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import { useEditorShortcuts } from '@renderer/hooks/useEditorShortcuts'
+import { useAddShortcut } from '@renderer/hooks/useAddShortcut'
 import { JSX, useCallback } from 'react'
 import {
   AtoZWordField,
@@ -101,7 +101,9 @@ export default function BalloonLetterPickerEditor({
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
   // Only one unit (word), all tiers do the same
-  useEditorShortcuts(() => addWord())
+  useAddShortcut({
+    onTier1: addWord
+  })
 
   // ── Validation ────────────────────────────────────────────────────────────
   const missingWord = words.filter((w) => !w.word.trim())

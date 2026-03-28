@@ -20,7 +20,7 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
-import { useEditorShortcuts } from '@renderer/hooks/useEditorShortcuts'
+import { useAddShortcut } from '@renderer/hooks/useAddShortcut'
 import { JSX, useCallback, useState } from 'react'
 import {
   EmptyState,
@@ -160,10 +160,9 @@ export default function GroupSortEditor({
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
   // Tier 1 (Ctrl+N) = item (smallest unit) → last group
   // Tier 2 (Ctrl+Shift+N) = group (nothing above group)
-  // Tier 3 (Ctrl+Shift+Alt+N) = group (same, nothing higher)
-  useEditorShortcuts((tier) => {
-    if (tier === 1) addItem()
-    else addGroup()
+  useAddShortcut({
+    onTier1: addItem,
+    onTier2: addGroup
   })
 
   // ── Validation ────────────────────────────────────────────────────────────

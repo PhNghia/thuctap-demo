@@ -70,7 +70,7 @@ function historyReducer<T>(state: State<T>, action: Action<T>): State<T> {
  * All three slices (past/present/future) update in one dispatch, so there are
  * no intermediate renders with inconsistent state and no stale-closure issues.
  */
-export function useHistory<T>(initial: T): HistoryState<T> {
+export function useProjectHistory<T>(initial: T): HistoryState<T> {
   const [state, dispatch] = useReducer(historyReducer as (s: State<T>, a: Action<T>) => State<T>, {
     past: [],
     present: initial,
