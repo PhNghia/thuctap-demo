@@ -84,12 +84,28 @@ for game_id in "${GAMES[@]}"; do
 
   # Copy dist -> builder templates/<game_id>/game/
   target_dir="$BUILDER_TEMPLATES/$game_id/game"
+  template_dir="$BUILDER_TEMPLATES/$game_id"
   abs_project="$TEMPLATE_PROJECTS/$game_id"
-  
+
   info "Copying dist -> $target_dir"
   mkdir -p "$target_dir"
   rm -rv "$target_dir/" 2>/dev/null || true
   cp -rv "$abs_project/dist/." "$target_dir/"
+
+  # Copy meta.json if it exists in source and not in destination
+  if [[ -f "$abs_project/meta.json" && ! -f "$template_dir/meta.json" ]]; then
+    cp -v "$abs_project/meta.json" "$template_dir/"
+  fi
+
+  # Copy thumbnail.* if it exists in source and not in destination
+  for thumb in "$abs_project"/thumbnail.*; do
+    if [[ -f "$thumb" ]]; then
+      thumb_basename="$(basename "$thumb")"
+      if [[ ! -f "$template_dir/$thumb_basename" ]]; then
+        cp -v "$thumb" "$template_dir/"
+      fi
+    fi
+  done
 
   ok "Done: $game_id"
   (( built++ )) || true
