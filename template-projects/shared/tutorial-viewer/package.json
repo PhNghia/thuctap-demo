@@ -3,14 +3,16 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.umd.js",
+  "module": "./dist/index.es.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./src/index.ts",
-      "types": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.umd.js"
     },
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./dist/style.css"
   },
   "scripts": {
     "dev": "vite",
@@ -28,6 +30,7 @@
     "@vitejs/plugin-react": "^6.0.0",
     "typescript": "~5.9.3",
     "vite": "^8.0.0",
+    "vite-plugin-css-injected-by-js": "^4.0.1",
     "vite-plugin-dts": "^4.5.0"
   },
   "packageManager": "yarn@4.13.0"

@@ -10,9 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@minigame/tutorial-viewer": "workspace:*",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/utilities": "^3.2.2",
+    "@minigame/tutorial-viewer": "workspace:*",
     "clsx": "^2.1.1",
     "framer-motion": "^12.36.0",
     "react": "^19.2.4",
