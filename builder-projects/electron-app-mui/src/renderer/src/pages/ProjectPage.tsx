@@ -30,14 +30,22 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
+import { useSettings } from '@renderer/hooks/useSettings'
 import { JSX, useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import SettingsPanel from '../components/SettingsPanel'
-import { useSettings } from '../context/SettingsContext'
+import {
+  getHistoryArray,
+  ProjectHistoryProvider,
+  useProjectHistory
+} from '../context/ProjectHistoryContext'
 import { GAME_REGISTRY } from '../games/registry'
-import { useProjectHistory } from '../hooks/useProjectHistory'
 import { useProjectShortcuts } from '../hooks/useProjectShortcuts'
 import { AnyAppData, GameTemplate, ProjectFile, ProjectMeta } from '../types'
+
+// ── Constants ────────────────────────────────────────────────────────────────
+const AUTO_SAVE_DEBOUNCE_MS = 1000
+const SNACKBAR_AUTO_HIDE_MS = 3500
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function buildTitle(templateId: string, projectName: string, filePath: string): string {
@@ -46,7 +54,7 @@ function buildTitle(templateId: string, projectName: string, filePath: string): 
 
 function buildProjectFile(meta: ProjectMeta, appData: AnyAppData): ProjectFile {
   return {
-    version: meta.name ? '1.0.0' : '1.0.0', // always same, could track version
+    version: '1.0.0',
     templateId: meta.templateId,
     name: meta.name,
     createdAt: meta.createdAt,
@@ -56,21 +64,22 @@ function buildProjectFile(meta: ProjectMeta, appData: AnyAppData): ProjectFile {
   }
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
-export default function ProjectPage(): JSX.Element {
-  const { templateId } = useParams<{ templateId: string }>()
-  const location = useLocation()
-  const navigate = useNavigate()
-  const { resolved, setProjectSettings } = useSettings()
-
-  const locationState = location.state as {
+// ── Inner Component (uses history) ───────────────────────────────────────────
+interface ProjectPageInnerProps {
+  templateId: string
+  locationState: {
     filePath: string
     projectDir: string
     data: ProjectFile
   } | null
+}
+
+function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps): JSX.Element {
+  const navigate = useNavigate()
+  const { resolved, setProjectSettings } = useSettings()
 
   // Split project state: meta (file location, name) is separate from app data (game content)
-  const [meta, setMeta] = useState<ProjectMeta | null>(() =>
+  const [meta, setMeta] = useState<ProjectMeta | null>(
     locationState
       ? {
           filePath: locationState.filePath,
@@ -86,8 +95,26 @@ export default function ProjectPage(): JSX.Element {
   const [isDirty, setIsDirty] = useState(false)
   const [templates, setTemplates] = useState<GameTemplate[]>([])
 
-  // History tracks only the game data, not meta
-  const history = useProjectHistory<AnyAppData>(locationState?.data.appData ?? ({} as AnyAppData))
+  const {
+    present: appData,
+    setPresent: setAppData,
+    undo: historyUndo,
+    redo: historyRedo,
+    getHistory,
+    canUndo,
+    canRedo
+  } = useProjectHistory()
+
+  // Wrapped undo/redo that marks document as dirty
+  const handleUndo = useCallback(() => {
+    historyUndo()
+    setIsDirty(true)
+  }, [historyUndo])
+
+  const handleRedo = useCallback(() => {
+    historyRedo()
+    setIsDirty(true)
+  }, [historyRedo])
 
   // Load templates list for display names
   useEffect(() => {
@@ -113,12 +140,6 @@ export default function ProjectPage(): JSX.Element {
     window.electronAPI.setTitle(title)
   }, [meta, templateId, templates])
 
-  useEffect(() => {
-    metaRef.current = meta
-    appDataRef.current = history.present
-    isDirtyRef.current = isDirty
-  }, [meta, history.present, isDirty])
-
   const [snack, setSnack] = useState<{
     msg: string
     severity: 'success' | 'error' | 'info'
@@ -136,32 +157,36 @@ export default function ProjectPage(): JSX.Element {
     []
   )
 
+  // ── Refs for auto-save (kept in sync via effect below) ─────────────────────
+  const onEditTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const metaRef = useRef(meta)
+  const appDataRef = useRef(appData)
+  const isDirtyRef = useRef(isDirty)
+
+  // Keep refs in sync - update synchronously to avoid stale closures
+  metaRef.current = meta
+  appDataRef.current = appData
+  isDirtyRef.current = isDirty
+
   // ── Save ─────────────────────────────────────────────────────────────────
-  const doSave = useCallback(
-    async (currentMeta: ProjectMeta, appData: AnyAppData) => {
-      const file = buildProjectFile(currentMeta, appData)
-      // Pass history states so purging considers undo/redo stack
-      await window.electronAPI.saveProject(file, currentMeta.filePath, {
-        past: history.past,
-        future: history.future
-      })
-      setIsDirty(false)
-    },
-    [history.past, history.future]
-  )
+  const doSave = useCallback(async (currentMeta: ProjectMeta, appDataToSave: AnyAppData) => {
+    const file = buildProjectFile(currentMeta, appDataToSave)
+    const history = getHistoryArray(getHistory())
+    await window.electronAPI.saveProject(file, currentMeta.filePath, history)
+    setIsDirty(false)
+  }, [])
 
   const performSaveAs = useCallback(
     async (folder: string): Promise<void> => {
       if (!meta) return
       try {
+        const history = getHistoryArray(getHistory())
         const newLoc = await window.electronAPI.doSaveAs({
-          projectData: buildProjectFile(meta, history.present),
+          projectData: buildProjectFile(meta, appData),
           oldProjectDir: meta.projectDir,
           newFolder: folder,
-          historyStates: {
-            past: history.past,
-            future: history.future
-          }
+          history
         })
         setMeta((prev) =>
           prev ? { ...prev, filePath: newLoc.filePath, projectDir: newLoc.projectDir } : prev
@@ -173,59 +198,84 @@ export default function ProjectPage(): JSX.Element {
         showSnack(`Save As failed: ${e}`, 'error')
       }
     },
-    [meta, history.present, history.past, history.future, showSnack]
+    [meta, appData, showSnack]
   )
 
-  // ── Auto-save ─────────────────────────────────────────────────────────────
-  const onEditTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const metaRef = useRef(meta)
-  const appDataRef = useRef(history.present)
-  const isDirtyRef = useRef(isDirty)
-
+  // ── Auto-save: interval mode ───────────────────────────────────────────────
   useEffect(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current)
+    // Clear existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+
+    // Set up new interval if mode is 'interval'
     if (resolved.autoSave.mode === 'interval') {
       intervalRef.current = setInterval(() => {
-        if (isDirtyRef.current && metaRef.current)
-          doSave(metaRef.current, appDataRef.current).catch(() => {})
+        if (isDirtyRef.current && metaRef.current) {
+          doSave(metaRef.current, appDataRef.current).catch(() => {
+            // Silently fail - user will see dirty indicator
+          })
+        }
       }, resolved.autoSave.intervalSeconds * 1000)
     }
+
+    // Cleanup on unmount or mode change
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
     }
   }, [resolved.autoSave.mode, resolved.autoSave.intervalSeconds, doSave])
+
+  // ── Auto-save: on-edit mode ────────────────────────────────────────────────
+  useEffect(() => {
+    // Cleanup on unmount or mode change
+    return () => {
+      if (onEditTimerRef.current) {
+        clearTimeout(onEditTimerRef.current)
+        onEditTimerRef.current = null
+      }
+    }
+  }, [])
 
   // ── App data change (from editor) ─────────────────────────────────────────
   const handleAppDataChange = useCallback(
     (newData: AnyAppData) => {
-      history.push(newData)
+      setAppData(newData)
       setIsDirty(true)
+
+      // Auto-save on edit with debounce
       if (resolved.autoSave.mode === 'on-edit') {
         if (onEditTimerRef.current) clearTimeout(onEditTimerRef.current)
         onEditTimerRef.current = setTimeout(() => {
-          if (metaRef.current) doSave(metaRef.current, newData).catch(() => {})
-        }, 1000)
+          if (metaRef.current) {
+            doSave(metaRef.current, newData).catch(() => {
+              // Silently fail - user will see dirty indicator
+            })
+          }
+        }, AUTO_SAVE_DEBOUNCE_MS)
       }
     },
-    [history, resolved.autoSave.mode, doSave]
+    [setAppData, resolved.autoSave.mode, doSave]
   )
 
   const handleSave = useCallback(async (): Promise<void> => {
     if (!meta) return
     try {
-      await doSave(meta, history.present)
+      await doSave(meta, appData)
       showSnack('Project saved!')
     } catch (e) {
       showSnack(`Save failed: ${e}`, 'error')
     }
-  }, [meta, history.present, doSave, showSnack])
+  }, [meta, appData, doSave, showSnack])
 
   // ── Save As ───────────────────────────────────────────────────────────────
   const handleSaveAs = useCallback(async (): Promise<void> => {
     if (!meta) return
     const result = await window.electronAPI.saveProjectAs({
-      projectData: buildProjectFile(meta, history.present),
+      projectData: buildProjectFile(meta, appData),
       oldProjectDir: meta.projectDir
     })
     if (!result) return
@@ -237,7 +287,7 @@ export default function ProjectPage(): JSX.Element {
       }
     }
     await performSaveAs(result.folder)
-  }, [meta, history.present, showSnack, performSaveAs])
+  }, [meta, appData, showSnack, performSaveAs])
 
   // ── Export / Preview ───────────────────────────────────────────────────────
   const handleExport = async (mode: 'folder' | 'zip'): Promise<void> => {
@@ -246,7 +296,7 @@ export default function ProjectPage(): JSX.Element {
     try {
       const result = await window.electronAPI.exportProject({
         templateId: meta.templateId,
-        appData: history.present,
+        appData: appData,
         projectDir: meta.projectDir,
         mode
       })
@@ -262,7 +312,7 @@ export default function ProjectPage(): JSX.Element {
     try {
       await window.electronAPI.previewProject({
         templateId: meta.templateId,
-        appData: history.present,
+        appData: appData,
         projectDir: meta.projectDir
       })
       showSnack('Preview opened')
@@ -278,17 +328,20 @@ export default function ProjectPage(): JSX.Element {
     setMeta(updated)
     setRenameOpen(false)
     try {
-      await doSave(updated, history.present)
-    } catch {
-      /* saved later */
+      await doSave(updated, appData)
+    } catch (e) {
+      // Revert the rename if save fails
+      setMeta(meta)
+      showSnack(`Rename failed: ${e}`, 'error')
+      throw e
     }
   }
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
   useProjectShortcuts({
     // Navigation
-    onUndo: history.canUndo ? history.undo : undefined,
-    onRedo: history.canRedo ? history.redo : undefined,
+    onUndo: canUndo ? handleUndo : undefined,
+    onRedo: canRedo ? handleRedo : undefined,
 
     // File operations
     onSave: handleSave,
@@ -392,14 +445,14 @@ export default function ProjectPage(): JSX.Element {
         <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
           <Tooltip title="Undo (Ctrl+Z)">
             <span>
-              <IconButton size="small" onClick={history.undo} disabled={!history.canUndo}>
+              <IconButton size="small" onClick={handleUndo} disabled={!canUndo}>
                 <UndoIcon fontSize="small" />
               </IconButton>
             </span>
           </Tooltip>
           <Tooltip title="Redo (Ctrl+Y)">
             <span>
-              <IconButton size="small" onClick={history.redo} disabled={!history.canRedo}>
+              <IconButton size="small" onClick={handleRedo} disabled={!canRedo}>
                 <RedoIcon fontSize="small" />
               </IconButton>
             </span>
@@ -460,11 +513,7 @@ export default function ProjectPage(): JSX.Element {
             )
           const { Editor } = entry
           return (
-            <Editor
-              appData={history.present}
-              projectDir={meta.projectDir}
-              onChange={handleAppDataChange}
-            />
+            <Editor appData={appData} projectDir={meta.projectDir} onChange={handleAppDataChange} />
           )
         })()}
       </Box>
@@ -602,7 +651,7 @@ export default function ProjectPage(): JSX.Element {
       {/* ── Snackbar ── */}
       <Snackbar
         open={!!snack}
-        autoHideDuration={3500}
+        autoHideDuration={SNACKBAR_AUTO_HIDE_MS}
         onClose={() => setSnack(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
@@ -611,5 +660,33 @@ export default function ProjectPage(): JSX.Element {
         </Alert>
       </Snackbar>
     </Box>
+  )
+}
+
+// ── Main Component (wraps with Provider) ─────────────────────────────────────
+export default function ProjectPage(): JSX.Element {
+  const { templateId } = useParams<{ templateId: string }>()
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  const locationState = location.state as {
+    filePath: string
+    projectDir: string
+    data: ProjectFile
+  } | null
+
+  if (!templateId) {
+    return (
+      <Box sx={{ p: 4, textAlign: 'center' }}>
+        <Typography color="error">No project data. Go back and try again.</Typography>
+        <Button onClick={() => navigate('/')}>Go Home</Button>
+      </Box>
+    )
+  }
+
+  return (
+    <ProjectHistoryProvider initialState={locationState?.data.appData ?? ({} as AnyAppData)}>
+      <ProjectPageInner templateId={templateId} locationState={locationState} />
+    </ProjectHistoryProvider>
   )
 }

@@ -165,7 +165,7 @@ To build only a single game template:
 
 **In builder-projects/electron-app-mui/:**
 6. **Register in `build-templates.sh`** — Add to `GAMES` array
-7. **Register in CI workflow** — Add to `.github/workflows/build-all.yml`
+7. **Register in CI workflow** — The workflow auto-detects templates from `build-templates.sh`
 8. **Add TypeScript types** — In `src/shared/types.ts`
 9. **Create editor component** — In `src/renderer/src/games/`
 10. **Register editor** — In `src/renderer/src/games/registry.ts`
@@ -215,11 +215,24 @@ yarn build:mac
 
 The GitHub Actions workflow (`.github/workflows/build-all.yml`) runs on `workflow_dispatch`. It:
 
-1. Builds every template project in parallel
-2. Downloads all built templates into a staging area
-3. Copies them into the builder's `templates/` directory
-4. Packages the Electron app for Windows and Linux
-5. Uploads installers as GitHub artifacts
+1. **Linux runner (primary build)**:
+   - Runs `./build-templates.sh` to build all game templates
+   - Uploads all templates as artifacts
+   - Builds the builder app with `electron-vite build && electron-builder --dir`
+   - Archives the output as 7z (overrides NSIS/DMG config)
+   - Uploads the 7z archive as artifact
+
+2. **Windows runner**:
+   - Downloads pre-built templates from Linux runner
+   - Builds only the builder app with 7z target
+   - Uploads the 7z archive as artifact
+
+3. **macOS runner**:
+   - Downloads pre-built templates from Linux runner
+   - Builds only the builder app with 7z target
+   - Uploads the 7z archive as artifact
+
+This approach minimizes Windows and macOS build time by reusing template artifacts built on Linux. All platforms produce 7z archives instead of platform-specific installers (NSIS for Windows, DMG for macOS).
 
 ---
 

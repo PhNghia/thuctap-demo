@@ -9,31 +9,19 @@ on:
         description: "Reason for manual build"
         required: false
         default: "Manual trigger"
+      build_windows:
+        description: "Build Windows App?"
+        type: boolean
+        default: false
+      build_macos:
+        description: "Build macOS App?"
+        type: boolean
+        default: false
 
 jobs:
-  # --- JOB 1: Build all Vite Project A's (The Resources) ---
-  build-templates:
+  # --- JOB 1: Build on Linux (primary build) ---
+  build-linux:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - project_path: "template-projects/group-sort"
-            game_id: "group-sort"
-          - project_path: "template-projects/plane-quiz"
-            game_id: "plane-quiz"
-          - project_path: "template-projects/balloon-letter-picker"
-            game_id: "balloon-letter-picker"
-          - project_path: "template-projects/pair-matching"
-            game_id: "pair-matching"
-          - project_path: "template-projects/word-search"
-            game_id: "word-search"
-          - project_path: "template-projects/whack-a-mole"
-            game_id: "whack-a-mole"
-
-          # Add more Project A's (Templates) here:
-          # - project_path: "apps/mini-game-2"
-          #   game_id: "memory-match"
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -44,59 +32,75 @@ jobs:
           node-version: 20
 
       - name: Install Yarn 4
-        run: corepack enable && corepack prepare yarn@4.12.0 --activate
+        run: corepack enable && corepack prepare yarn@4.13.0 --activate
 
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
+      # Step 1: Build all game templates using build-templates.sh
+      - name: Get yarn cache directory path (templates)
+        id: yarn-cache-dir-path-templates
         shell: bash
-        working-directory: ${{ matrix.project_path }}
+        working-directory: template-projects
         run: echo "dir=$(yarn config get cacheFolder)" >> $GITHUB_OUTPUT
 
-      - name: Cache Yarn dependencies
+      - name: Cache Yarn dependencies (templates)
         uses: actions/cache@v4
         with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-vite-${{ hashFiles(format('{0}/yarn.lock', matrix.project_path)) }}
+          path: ${{ steps.yarn-cache-dir-path-templates.outputs.dir }}
+          key: ${{ runner.os }}-yarn-templates-${{ hashFiles('template-projects/yarn.lock') }}
           restore-keys: |
-            ${{ runner.os }}-yarn-vite-
+            ${{ runner.os }}-yarn-templates-
 
-      - name: Install dependencies
-        working-directory: ${{ matrix.project_path }}
-        run: yarn install --immutable
+      - name: Build all templates using build-templates.sh
+        run: ./build-templates.sh
 
-      - name: Build Vite Template
-        working-directory: ${{ matrix.project_path }}
-        run: yarn build
-
-      - name: Upload Template Artifact
+      # Step 2: Upload each game template as separate artifact
+      - name: Upload template artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: template-${{ matrix.game_id }}
-          path: ${{ matrix.project_path }}/dist/
+          name: templates-all
+          path: builder-projects/electron-app-mui/templates/
           retention-days: 1
 
-  # --- JOB 2: Build Multiple Electron Project B's ---
-  build-electron:
-    needs: build-templates
-    strategy:
-      fail-fast: false # Ensure one app's failure doesn't stop others
-      matrix:
-        include:
-          # Configuration for Project B #1
-          - project_path: "builder-projects/electron-app-mui"
-            app_id: "builder-standard"
-            os: windows-latest
-          - project_path: "builder-projects/electron-app-mui"
-            app_id: "builder-standard"
-            os: ubuntu-latest
+      # Step 3: Build the builder app with 7z target
+      - name: Get yarn cache directory path (builder)
+        id: yarn-cache-dir-path-builder
+        shell: bash
+        working-directory: builder-projects/electron-app-mui
+        run: echo "dir=$(yarn config get cacheFolder)" >> $GITHUB_OUTPUT
 
-          # Configuration for Project B #2 (Add more apps here)
-          # - project_path: "other-apps/secondary-builder"
-          #   app_id: "builder-lite"
-          #   os: windows-latest
+      - name: Cache Yarn dependencies (builder)
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.yarn-cache-dir-path-builder.outputs.dir }}
+          key: ${{ runner.os }}-yarn-builder-${{ hashFiles('builder-projects/electron-app-mui/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-builder-
 
-    runs-on: ${{ matrix.os }}
+      - name: Install dependencies (builder)
+        working-directory: builder-projects/electron-app-mui
+        run: yarn install --immutable
 
+      - name: Build electron app (Linux - 7z)
+        working-directory: builder-projects/electron-app-mui
+        shell: bash
+        run: |
+          # Build with electron-vite build
+          yarn electron-vite build
+          # We remove --dir to let it actually compress the archive
+          yarn electron-builder --linux -c.linux.target=7z
+
+      - name: Upload Linux builder artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: builder-linux-7z
+          # electron-builder names the output based on your package.json name
+          path: builder-projects/electron-app-mui/dist/*.7z
+          retention-days: 30
+
+  # --- JOB 2: Build on Windows (download templates, build builder) ---
+  build-windows:
+    runs-on: windows-latest
+    needs: build-linux
+    if: ${{ inputs.build_windows == true }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -107,99 +111,105 @@ jobs:
           node-version: 20
 
       - name: Install Yarn 4
-        run: corepack enable && corepack prepare yarn@4.12.0 --activate
+        run: corepack enable && corepack prepare yarn@4.13.0 --activate
 
-      # 1. Download ALL templates built in Job 1
-      - name: Download all templates
+      # Download pre-built templates from Job 1
+      - name: Download templates artifact
         uses: actions/download-artifact@v4
         with:
-          path: ./temp-templates
-          pattern: template-*
-          merge-multiple: false
+          name: templates-all
+          path: builder-projects/electron-app-mui/templates/
 
-      # 2. Inject templates into this specific Project B's directory
-      - name: Place templates into Electron resources
+      - name: Get yarn cache directory path (builder)
+        id: yarn-cache-dir-path-builder
         shell: bash
-        run: |
-          for dir in ./temp-templates/template-*; do
-            # Extract game-id from folder name
-            GAME_ID=$(basename "$dir" | sed 's/template-//')
-            TARGET_DIR="${{ matrix.project_path }}/templates/$GAME_ID/game"
-            
-            echo "Installing template $GAME_ID into $TARGET_DIR"
-            mkdir -p "$TARGET_DIR"
-            cp -rv "$dir"/* "$TARGET_DIR/"
-          done
-
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        shell: bash
-        working-directory: ${{ matrix.project_path }}
+        working-directory: builder-projects/electron-app-mui
         run: echo "dir=$(yarn config get cacheFolder)" >> $GITHUB_OUTPUT
 
-      - name: Cache Yarn dependencies
+      - name: Cache Yarn dependencies (builder)
         uses: actions/cache@v4
         with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-yarn-electron-${{ hashFiles(format('{0}/yarn.lock', matrix.project_path)) }}
+          path: ${{ steps.yarn-cache-dir-path-builder.outputs.dir }}
+          key: ${{ runner.os }}-yarn-builder-${{ hashFiles('builder-projects/electron-app-mui/yarn.lock') }}
           restore-keys: |
-            ${{ runner.os }}-yarn-electron-
+            ${{ runner.os }}-yarn-builder-
 
-      - name: Install dependencies
-        working-directory: ${{ matrix.project_path }}
+      - name: Install dependencies (builder)
+        working-directory: builder-projects/electron-app-mui
         run: yarn install --immutable
 
-      - name: Package electron app
-        working-directory: ${{ matrix.project_path }}
+      - name: Build electron app (Windows - 7z)
+        working-directory: builder-projects/electron-app-mui
         shell: bash
         run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            yarn build:win
-          elif [[ "$RUNNER_OS" == "macOS" ]]; then
-            yarn build:mac
-          else
-            yarn build:linux
-          fi
+          # Build with electron-vite build
+          yarn electron-vite build
+          # We remove --dir to let it actually compress the archive
+          yarn electron-builder --win -c.win.target=7z
 
-      # Create a ready-to-build bundle
-      - name: Prepare electron-builder ready bundle
-        shell: bash
-        run: |
-          BUNDLE_DIR="./electron-bundle"
-          mkdir -p "$BUNDLE_DIR"
-
-          cp -r "${{ matrix.project_path }}/out" "$BUNDLE_DIR/"
-          cp -r "${{ matrix.project_path }}/templates" "$BUNDLE_DIR/"
-          cp "${{ matrix.project_path }}/package.json" "$BUNDLE_DIR/"
-
-          [ -f "${{ matrix.project_path }}/electron-builder.yml" ] && \
-            cp "${{ matrix.project_path }}/electron-builder.yml" "$BUNDLE_DIR/" || true
-
-          # Optional: copy icons, assets, etc. if used
-          cp -r "${{ matrix.project_path }}/resources" "$BUNDLE_DIR/" || true
-
-      - name: Sanitize artifact name
-        id: sanitize
-        shell: bash
-        run: |
-          # Create a name like build-builder-standard-windows-latest
-          echo "FINAL_NAME=${{ matrix.app_id }}-${{ matrix.os }}" >> $GITHUB_ENV
-
-      - name: Upload pre-package bundle
+      - name: Upload Windows builder artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.FINAL_NAME }}-bundle
-          path: ./electron-bundle
+          name: builder-windows-7z
+          # electron-builder names the output based on your package.json name
+          path: builder-projects/electron-app-mui/dist/*.7z
+          retention-days: 30
 
-      - name: Upload build artifact
+  # --- JOB 3: Build on macOS (download templates, build builder) ---
+  build-macos:
+    runs-on: macos-latest
+    needs: build-linux
+    if: ${{ inputs.build_macos == true }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Yarn 4
+        run: corepack enable && corepack prepare yarn@4.13.0 --activate
+
+      # Download pre-built templates from Job 1
+      - name: Download templates artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: templates-all
+          path: builder-projects/electron-app-mui/templates/
+
+      - name: Get yarn cache directory path (builder)
+        id: yarn-cache-dir-path-builder
+        shell: bash
+        working-directory: builder-projects/electron-app-mui
+        run: echo "dir=$(yarn config get cacheFolder)" >> $GITHUB_OUTPUT
+
+      - name: Cache Yarn dependencies (builder)
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.yarn-cache-dir-path-builder.outputs.dir }}
+          key: ${{ runner.os }}-yarn-builder-${{ hashFiles('builder-projects/electron-app-mui/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-builder-
+
+      - name: Install dependencies (builder)
+        working-directory: builder-projects/electron-app-mui
+        run: yarn install --immutable
+
+      - name: Build electron app (macOS - 7z)
+        working-directory: builder-projects/electron-app-mui
+        shell: bash
+        run: |
+          # Build with electron-vite build
+          yarn electron-vite build
+          # We remove --dir to let it actually compress the archive
+          yarn electron-builder --mac -c.mac.target=7z
+
+      - name: Upload macOS builder artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.FINAL_NAME }}-package
-          path: |
-            ${{ matrix.project_path }}/dist/*.exe
-            ${{ matrix.project_path }}/dist/*.AppImage
-            ${{ matrix.project_path }}/dist/*.deb
-            ${{ matrix.project_path }}/dist/*.rpm
-            ${{ matrix.project_path }}/dist/*.dmg
-            ${{ matrix.project_path }}/dist/*.zip
-            ${{ matrix.project_path }}/dist/*.7z
+          name: builder-macos-7z
+          # electron-builder names the output based on your package.json name
+          path: builder-projects/electron-app-mui/dist/*.7z
+          retention-days: 30

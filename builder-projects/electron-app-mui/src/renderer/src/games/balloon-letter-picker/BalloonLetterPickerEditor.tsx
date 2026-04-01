@@ -15,6 +15,7 @@ import {
   Typography
 } from '@mui/material'
 import { useEntityCreateShortcut } from '@renderer/hooks/useEntityCreateShortcut'
+import { useSettings } from '@renderer/hooks/useSettings'
 import { JSX, useCallback } from 'react'
 import {
   AtoZWordField,
@@ -25,7 +26,6 @@ import {
   StickyHeader
 } from '../../components/EditorShared'
 import ImagePicker from '../../components/ImagePicker'
-import { useSettings } from '../../context/SettingsContext'
 import { BalloonLetterPickerAppData, BalloonWord } from '../../types'
 import { getExcelName } from '../../utils/stringUtils'
 

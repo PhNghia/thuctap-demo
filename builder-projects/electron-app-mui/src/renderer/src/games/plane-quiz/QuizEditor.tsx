@@ -22,6 +22,7 @@ import {
   Typography
 } from '@mui/material'
 import { useEntityCreateShortcut } from '@renderer/hooks/useEntityCreateShortcut'
+import { useSettings } from '@renderer/hooks/useSettings'
 import React, { useCallback } from 'react'
 import {
   EmptyState,
@@ -32,7 +33,6 @@ import {
   StickyHeader
 } from '../../components/EditorShared'
 import ImagePicker from '../../components/ImagePicker'
-import { useSettings } from '../../context/SettingsContext'
 import { QuizAnswer, QuizAppData, QuizQuestion } from '../../types'
 
 interface Props {

@@ -3866,6 +3866,7 @@ __metadata:
     date-fns: "npm:^4.1.0"
     electron: "npm:^41.1.0"
     electron-builder: "npm:^26.8.1"
+    electron-devtools-installer: "npm:^4.0.0"
     electron-icon-maker: "npm:^0.0.5"
     electron-updater: "npm:^6.8.3"
     electron-vite: "npm:^5.0.0"
@@ -3874,6 +3875,7 @@ __metadata:
     eslint-plugin-react-hooks: "npm:^7.0.1"
     eslint-plugin-react-refresh: "npm:^0.5.2"
     framer-motion: "npm:^12.38.0"
+    mutative: "npm:^1.3.0"
     prettier: "npm:^3.8.1"
     react: "npm:^19.2.4"
     react-dom: "npm:^19.2.4"
@@ -3881,9 +3883,12 @@ __metadata:
     react-hotkeys-hook: "npm:^5.2.4"
     react-router-dom: "npm:^7.13.2"
     tailwindcss: "npm:^4.2.2"
+    travels: "npm:^1.1.0"
     typescript: "npm:^6.0.2"
     uuid: "npm:^13.0.0"
     vite: "npm:^8.0.3"
+    zustand: "npm:^5.0.12"
+    zustand-travel: "npm:^1.0.0"
   languageName: unknown
   linkType: soft
 
@@ -3905,6 +3910,15 @@ __metadata:
     electron-builder: cli.js
     install-app-deps: install-app-deps.js
   checksum: 10c0/12d4e3f051679f805ef5fd8f883722c69b9b40060d1c1ea30a02f146662346c3d09b9c011bfcae9446ed2abac81da94f7316c9ed02feef9ea2e80a610fe53f13
+  languageName: node
+  linkType: hard
+
+"electron-devtools-installer@npm:^4.0.0":
+  version: 4.0.0
+  resolution: "electron-devtools-installer@npm:4.0.0"
+  dependencies:
+    unzip-crx-3: "npm:^0.2.0"
+  checksum: 10c0/54ba5b7c5f51b9e9857d840fd8ab1958c80efe1c71ad1455f0c93fb3d87696261a429453d561074edcf5e2296b37e1bc65c98b61281ec704add8a563f454f4d0
   languageName: node
   linkType: hard
 
@@ -5441,6 +5455,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"immediate@npm:~3.0.5":
+  version: 3.0.6
+  resolution: "immediate@npm:3.0.6"
+  checksum: 10c0/f8ba7ede69bee9260241ad078d2d535848745ff5f6995c7c7cb41cfdc9ccc213f66e10fa5afb881f90298b24a3f7344b637b592beb4f54e582770cdce3f1f039
+  languageName: node
+  linkType: hard
+
 "import-fresh@npm:^3.2.1":
   version: 3.3.1
   resolution: "import-fresh@npm:3.3.1"
@@ -6094,6 +6115,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"jszip@npm:^3.1.0":
+  version: 3.10.1
+  resolution: "jszip@npm:3.10.1"
+  dependencies:
+    lie: "npm:~3.3.0"
+    pako: "npm:~1.0.2"
+    readable-stream: "npm:~2.3.6"
+    setimmediate: "npm:^1.0.5"
+  checksum: 10c0/58e01ec9c4960383fb8b38dd5f67b83ccc1ec215bf74c8a5b32f42b6e5fb79fada5176842a11409c4051b5b94275044851814a31076bf49e1be218d3ef57c863
+  languageName: node
+  linkType: hard
+
 "kew@npm:^0.7.0":
   version: 0.7.0
   resolution: "kew@npm:0.7.0"
@@ -6154,6 +6187,15 @@ __metadata:
     prelude-ls: "npm:^1.2.1"
     type-check: "npm:~0.4.0"
   checksum: 10c0/effb03cad7c89dfa5bd4f6989364bfc79994c2042ec5966cb9b95990e2edee5cd8969ddf42616a0373ac49fac1403437deaf6e9050fbbaa3546093a59b9ac94e
+  languageName: node
+  linkType: hard
+
+"lie@npm:~3.3.0":
+  version: 3.3.0
+  resolution: "lie@npm:3.3.0"
+  dependencies:
+    immediate: "npm:~3.0.5"
+  checksum: 10c0/56dd113091978f82f9dc5081769c6f3b947852ecf9feccaf83e14a123bc630c2301439ce6182521e5fbafbde88e88ac38314327a4e0493a1bea7e0699a7af808
   languageName: node
   linkType: hard
 
@@ -6722,6 +6764,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"mutative@npm:^1.3.0":
+  version: 1.3.0
+  resolution: "mutative@npm:1.3.0"
+  checksum: 10c0/6d23b9f6950c0895cda16e456028d2d3aa99ac3f2fe99d79821b34b37e4e379b0add4fdfec80126ef5ae1c5a7da7aa3345d5805b60ddb6b44220d2058ac50504
+  languageName: node
+  linkType: hard
+
 "nanoid@npm:^3.3.11":
   version: 3.3.11
   resolution: "nanoid@npm:3.3.11"
@@ -7086,7 +7135,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pako@npm:^1.0.5":
+"pako@npm:^1.0.5, pako@npm:~1.0.2":
   version: 1.0.11
   resolution: "pako@npm:1.0.11"
   checksum: 10c0/86dd99d8b34c3930345b8bbeb5e1cd8a05f608eeb40967b293f72fe469d0e9c88b783a8777e4cc7dc7c91ce54c5e93d88ff4b4f060e6ff18408fd21030d9ffbe
@@ -7680,7 +7729,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"readable-stream@npm:^2.0.5, readable-stream@npm:^2.2.2":
+"readable-stream@npm:^2.0.5, readable-stream@npm:^2.2.2, readable-stream@npm:~2.3.6":
   version: 2.3.8
   resolution: "readable-stream@npm:2.3.8"
   dependencies:
@@ -8175,6 +8224,13 @@ __metadata:
     es-errors: "npm:^1.3.0"
     es-object-atoms: "npm:^1.0.0"
   checksum: 10c0/ca5c3ccbba479d07c30460e367e66337cec825560b11e8ba9c5ebe13a2a0d6021ae34eddf94ff3dfe17a3104dc1f191519cb6c48378b503e5c3f36393938776a
+  languageName: node
+  linkType: hard
+
+"setimmediate@npm:^1.0.5":
+  version: 1.0.5
+  resolution: "setimmediate@npm:1.0.5"
+  checksum: 10c0/5bae81bfdbfbd0ce992893286d49c9693c82b1bcc00dcaaf3a09c8f428fdeacf4190c013598b81875dfac2b08a572422db7df779a99332d0fce186d15a3e4d49
   languageName: node
   linkType: hard
 
@@ -8810,6 +8866,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"travels@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "travels@npm:1.1.0"
+  peerDependencies:
+    mutative: ">=1.0.0"
+  checksum: 10c0/6338048ab9227362c38b8dcee38d6ffe7ac31827c76c578fe4469979752b820b5290e5ecb96a559abef421e038d4d698b2d4c08a9b77d7db598a8e1580580be0
+  languageName: node
+  linkType: hard
+
 "truncate-utf8-bytes@npm:^1.0.0":
   version: 1.0.2
   resolution: "truncate-utf8-bytes@npm:1.0.2"
@@ -9017,6 +9082,17 @@ __metadata:
   version: 2.0.1
   resolution: "universalify@npm:2.0.1"
   checksum: 10c0/73e8ee3809041ca8b818efb141801a1004e3fc0002727f1531f4de613ea281b494a40909596dae4a042a4fb6cd385af5d4db2e137b1362e0e91384b828effd3a
+  languageName: node
+  linkType: hard
+
+"unzip-crx-3@npm:^0.2.0":
+  version: 0.2.0
+  resolution: "unzip-crx-3@npm:0.2.0"
+  dependencies:
+    jszip: "npm:^3.1.0"
+    mkdirp: "npm:^0.5.1"
+    yaku: "npm:^0.16.6"
+  checksum: 10c0/e551cb3d57d0271da41825e9bd9a7f4ef9ec5c3f15edc37bf909928c8327f21a6938ddc922787ee2b1b31f95ac83232dac79fd5a44e2727f9e800df9017a3b91
   languageName: node
   linkType: hard
 
@@ -9404,6 +9480,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"yaku@npm:^0.16.6":
+  version: 0.16.7
+  resolution: "yaku@npm:0.16.7"
+  checksum: 10c0/de45a2f6c31ab905174c4e5a3aad93972cb3cf2946d206ab9718ad5fb9adf0781c011d8b1d576daf20ebfa02fa120a8e7552a742a88bb3d288eea5a3a693187c
+  languageName: node
+  linkType: hard
+
 "yallist@npm:^3.0.2":
   version: 3.1.1
   resolution: "yallist@npm:3.1.1"
@@ -9525,5 +9608,44 @@ __metadata:
   version: 4.3.6
   resolution: "zod@npm:4.3.6"
   checksum: 10c0/860d25a81ab41d33aa25f8d0d07b091a04acb426e605f396227a796e9e800c44723ed96d0f53a512b57be3d1520f45bf69c0cb3b378a232a00787a2609625307
+  languageName: node
+  linkType: hard
+
+"zustand-travel@npm:^1.0.0":
+  version: 1.0.0
+  resolution: "zustand-travel@npm:1.0.0"
+  peerDependencies:
+    "@types/react": ^18.0 || ^17.0 || ^19.0
+    mutative: ^1.3.0
+    react: ^18.0 || ^17.0 || ^19.0
+    travels: ^1.0
+    zustand: ^4.0 || ^5.0
+  peerDependenciesMeta:
+    "@types/react":
+      optional: true
+    react:
+      optional: true
+  checksum: 10c0/4173d3dcea2ff26f4b6dfa61b0aa7ad67c123afc104ac1dbf049aecc9679475fd3dc03bb4d122cd659d2a554500dd1b57cb7435903ca1f0be59ec1d6bba63a62
+  languageName: node
+  linkType: hard
+
+"zustand@npm:^5.0.12":
+  version: 5.0.12
+  resolution: "zustand@npm:5.0.12"
+  peerDependencies:
+    "@types/react": ">=18.0.0"
+    immer: ">=9.0.6"
+    react: ">=18.0.0"
+    use-sync-external-store: ">=1.2.0"
+  peerDependenciesMeta:
+    "@types/react":
+      optional: true
+    immer:
+      optional: true
+    react:
+      optional: true
+    use-sync-external-store:
+      optional: true
+  checksum: 10c0/304c1dfb6033d758ddc7606c15df8566e6cace83ee4eeec721e8975f7813fd4cca2c68ff6b3eaa1841a9e53f0cf8486007217479785eccb845e3596de4df7f1e
   languageName: node
   linkType: hard

@@ -311,7 +311,7 @@ This section focuses on the **builder app code changes** required when adding a 
 | ---- | ---------------------------------- | --------------------------------------------------- |
 | 1    | Create game template               | `template-projects/` (see Root README)              |
 | 2    | Register in build script           | `build-templates.sh` (see Root README)              |
-| 3    | Register in CI                     | `.github/workflows/build-all.yml` (see Root README) |
+| 3    | Register in CI                     | Auto-detected from `build-templates.sh` (see Root README) |
 | 4    | **Define AppData types**           | `src/shared/types.ts` (this README)                 |
 | 5    | **Create editor component**        | `src/renderer/src/games/<game-id>/` (this README)   |
 | 6    | **Register editor**                | `src/renderer/src/games/registry.ts` (this README)  |
@@ -569,11 +569,16 @@ yarn typecheck
 # Build for current platform
 yarn build
 
-# Build for specific platforms
-yarn build:win      # Windows (7z)
-yarn build:mac      # macOS (dmg)
+# Build for specific platforms (local development)
+yarn build:win      # Windows (NSIS installer)
+yarn build:mac      # macOS (DMG)
 yarn build:linux    # Linux (AppImage)
+
+# Build unpacked directory (for testing)
+yarn build:unpack
 ```
+
+> 💡 **Note**: The CI/CD workflow builds with 7z target for distribution. Run `electron-builder --dir --config.target=7z` manually if you need 7z archives locally.
 
 ### Build Process
 
@@ -584,11 +589,16 @@ yarn build:linux    # Linux (AppImage)
 
 ### Distribution
 
-Built artifacts appear in `dist/`:
+**Local builds** (using `yarn build:*` commands):
+- Windows: NSIS installer (`.exe`)
+- macOS: DMG image (`.dmg`)
+- Linux: AppImage (`.AppImage`)
 
-- Windows: `electron-app-1.0.0-win32-x64/`
-- macOS: `electron-app-1.0.0.dmg`
-- Linux: `electron-app-1.0.0.AppImage`
+**CI/CD builds** (GitHub Actions):
+- All platforms: 7z archives (`.7z`)
+- Windows: `I-CLC-Game-maker-win-x64.7z`
+- macOS: `I-CLC-Game-maker-mac-x64.7z`
+- Linux: `I-CLC-Game-maker-linux-x64.7z`
 
 ---
 

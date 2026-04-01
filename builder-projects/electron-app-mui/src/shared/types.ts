@@ -240,7 +240,7 @@ export interface IPCChannelDefinitions {
       event: IpcMainInvokeEvent,
       data: object,
       projectPath: string,
-      historyStates?: { past: object[]; future: object[] }
+      history?: object[]
     ) => Promise<boolean>
   }
   'save-project-as': {
@@ -259,7 +259,7 @@ export interface IPCChannelDefinitions {
         projectData: object
         oldProjectDir: string
         newFolder: string
-        historyStates?: { past: object[]; future: object[] }
+        history?: object[]
       }
     ) => Promise<{ filePath: string; projectDir: string }>
   }

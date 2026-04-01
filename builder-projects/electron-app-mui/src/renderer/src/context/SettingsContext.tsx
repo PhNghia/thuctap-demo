@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import React, { createContext, useCallback, useEffect, useRef, useState } from 'react'
 import {
   DEFAULT_GLOBAL_SETTINGS,
   GlobalSettings,
@@ -33,7 +33,7 @@ function deepMergeDefaults(saved: object): GlobalSettings {
 
 // ── Context types ─────────────────────────────────────────────────────────────
 
-interface SettingsContextValue {
+export interface SettingsContextValue {
   /** Raw global settings (for displaying / editing) */
   globalSettings: GlobalSettings
   /** Current per-project overrides */
@@ -53,7 +53,7 @@ interface SettingsContextValue {
   setProjectSettings: (s: ProjectSettings | null) => void
 }
 
-const SettingsContext = createContext<SettingsContextValue | null>(null)
+export const SettingsContext = createContext<SettingsContextValue | null>(null)
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
@@ -109,13 +109,4 @@ export function SettingsProvider({ children }: { children: React.ReactNode }): R
       {children}
     </SettingsContext.Provider>
   )
-}
-
-// ── Hook ──────────────────────────────────────────────────────────────────────
-
-// eslint-disable-next-line react-refresh/only-export-components
-export function useSettings(): SettingsContextValue {
-  const ctx = useContext(SettingsContext)
-  if (!ctx) throw new Error('useSettings must be used inside <SettingsProvider>')
-  return ctx
 }

@@ -161,7 +161,7 @@ yarn dev
 
 **Trong builder-projects/electron-app-mui/:**
 6. **Đăng ký trong `build-templates.sh`** — Thêm vào mảng `GAMES`
-7. **Đăng ký trong CI workflow** — Thêm vào `.github/workflows/build-all.yml`
+7. **Đăng ký trong CI workflow** — Workflow tự động phát hiện templates từ `build-templates.sh`
 8. **Thêm kiểu TypeScript** — Trong `src/shared/types.ts`
 9. **Tạo thành phần editor** — Trong `src/renderer/src/games/`
 10. **Đăng ký editor** — Trong `src/renderer/src/games/registry.ts`
@@ -211,11 +211,24 @@ yarn build:mac
 
 Quy trình GitHub Actions (`.github/workflows/build-all.yml`) chạy khi `workflow_dispatch`. Nó:
 
-1. Build mọi dự án template song song
-2. Tải tất cả các template đã build vào một khu vực tạm thời
-3. Sao chép chúng vào thư mục `templates/` của builder
-4. Đóng gói ứng dụng Electron cho Windows và Linux
-5. Tải lên các trình cài đặt dưới dạng artifacts của GitHub
+1. **Linux runner (build chính)**:
+   - Chạy `./build-templates.sh` để build tất cả game templates
+   - Tải lên tất cả templates dưới dạng artifacts
+   - Build ứng dụng builder với `electron-vite build && electron-builder --dir`
+   - Lưu đầu ra dưới dạng 7z (ghi đè cấu hình NSIS/DMG)
+   - Tải lên file 7z dưới dạng artifact
+
+2. **Windows runner**:
+   - Tải templates đã build từ Linux runner
+   - Chỉ build ứng dụng builder với target 7z
+   - Tải lên file 7z dưới dạng artifact
+
+3. **macOS runner**:
+   - Tải templates đã build từ Linux runner
+   - Chỉ build ứng dụng builder với target 7z
+   - Tải lên file 7z dưới dạng artifact
+
+Cách tiếp cận này giảm thiểu thời gian build trên Windows và macOS bằng cách tái sử dụng template artifacts được build trên Linux. Tất cả các nền tảng đều tạo ra file 7z thay vì các bộ cài đặt riêng của nền tảng (NSIS cho Windows, DMG cho macOS).
 
 ---
 

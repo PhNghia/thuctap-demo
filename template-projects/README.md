@@ -365,7 +365,12 @@ GAMES=(
 
 ### Step 7: Register in CI/CD
 
-Edit `.github/workflows/build-all.yml` and add your game to the build matrix.
+The CI workflow (`.github/workflows/build-all.yml`) now uses a simplified approach:
+
+- **Linux runner**: Runs `./build-templates.sh` which automatically builds all games registered in the `GAMES` array
+- **Windows/macOS runners**: Download pre-built templates from Linux runner
+
+No changes to the workflow file are needed when adding a new game — just register it in `build-templates.sh` (Step 6). The CI will automatically pick it up.
 
 ### Step 8: Test
 

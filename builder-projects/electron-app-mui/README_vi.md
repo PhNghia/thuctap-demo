@@ -312,7 +312,7 @@ Phần này tập trung vào **các thay đổi code trong ứng dụng builder*
 | ---- | --------------------------------- | --------------------------------------------------- |
 | 1    | Tạo game template                 | `template-projects/` (xem Root README)              |
 | 2    | Đăng ký trong build script        | `build-templates.sh` (xem Root README)              |
-| 3    | Đăng ký trong CI                  | `.github/workflows/build-all.yml` (xem Root README) |
+| 3    | Đăng ký trong CI                  | Tự động phát hiện từ `build-templates.sh` (xem Root README) |
 | 4    | **Định nghĩa kiểu AppData**       | `src/shared/types.ts` (README này)                  |
 | 5    | **Tạo thành phần editor**         | `src/renderer/src/games/<game-id>/` (README này)    |
 | 6    | **Đăng ký editor**                | `src/renderer/src/games/registry.ts` (README này)   |
@@ -570,11 +570,16 @@ yarn typecheck
 # Build cho nền tảng hiện tại
 yarn build
 
-# Build cho các nền tảng cụ thể
-yarn build:win      # Windows (7z)
-yarn build:mac      # macOS (dmg)
+# Build cho các nền tảng cụ thể (phát triển cục bộ)
+yarn build:win      # Windows (bộ cài đặt NSIS)
+yarn build:mac      # macOS (DMG)
 yarn build:linux    # Linux (AppImage)
+
+# Build thư mục unpacked (để kiểm tra)
+yarn build:unpack
 ```
+
+> 💡 **Lưu ý**: Quy trình CI/CD build với target 7z để phân phối. Chạy `electron-builder --dir --config.target=7z` thủ công nếu bạn cần file 7z cục bộ.
 
 ### Quy trình Build
 
@@ -585,11 +590,16 @@ yarn build:linux    # Linux (AppImage)
 
 ### Phân phối
 
-Các artifacts build xuất hiện trong `dist/`:
+**Build cục bộ** (sử dụng lệnh `yarn build:*`):
+- Windows: Bộ cài đặt NSIS (`.exe`)
+- macOS: Ảnh DMG (`.dmg`)
+- Linux: AppImage (`.AppImage`)
 
-- Windows: `electron-app-1.0.0-win32-x64/`
-- macOS: `electron-app-1.0.0.dmg`
-- Linux: `electron-app-1.0.0.AppImage`
+**Build CI/CD** (GitHub Actions):
+- Tất cả nền tảng: File 7z (`.7z`)
+- Windows: `I-CLC-Game-maker-win-x64.7z`
+- macOS: `I-CLC-Game-maker-mac-x64.7z`
+- Linux: `I-CLC-Game-maker-linux-x64.7z`
 
 ---
 
