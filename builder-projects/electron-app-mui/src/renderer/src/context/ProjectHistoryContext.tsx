@@ -1,12 +1,5 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode
-} from 'react'
+import { rawReturn } from 'mutative'
+import { createContext, useContext, useState, type ReactNode } from 'react'
 import { createStore, useStore } from 'zustand'
 import { travel } from 'zustand-travel'
 import { AnyAppData } from '../types'
@@ -23,17 +16,18 @@ export type HistoryStore = ReturnType<typeof createHistoryStore>
  * We expose a custom setState action that uses this `set` function.
  */
 const createHistoryStore = (initialState: AnyAppData) => {
-  return createStore<AnyAppData & { setState: (newState: AnyAppData) => void }>()(
+  return createStore<{ data: AnyAppData; setPresent: (newState: AnyAppData) => void }>()(
     travel(
       (set) => ({
-        ...initialState,
-        setState: (newState: AnyAppData) => {
-          set(() => newState)
+        data: { ...initialState },
+        setPresent: (newState: AnyAppData) => {
+          set(() => rawReturn({ data: newState }))
         }
       }),
       {
         maxHistory: 50,
-        autoArchive: true
+        autoArchive: true,
+        strict: process.env.NODE_ENV === 'development'
       }
     )
   )
@@ -60,7 +54,7 @@ export function ProjectHistoryProvider({ children, initialState }: ProjectHistor
  * Each ProjectHistoryProvider instance has its own isolated history state.
  *
  * @example
- * const { state, setState, controls, canBack, canForward } = useProjectHistory()
+ * const { state, setPresent, controls, canBack, canForward } = useProjectHistory()
  * controls.back()   // undo
  * controls.forward() // redo
  */
@@ -72,93 +66,19 @@ export function useProjectHistory() {
 
   // Subscribe to store changes - triggers re-renders when state changes
   const state = useStore(store, (s) => s)
+  const present = useStore(store, (s) => s.data)
 
   // Get travel controls (stable reference)
   const controls = store.getControls()
-  
+
   // Subscribe to control state changes for reactive UI
   const canBack = useStore(store, () => controls.canBack())
   const canForward = useStore(store, () => controls.canForward())
   const position = useStore(store, () => controls.position)
 
   return {
-    state,
-    setState: state.setState,
-    controls,
-    store,
-    canBack,
-    canForward,
-    position
-  }
-}
-
-// ── Hook with debounced push ──────────────────────────────────────────────────
-interface UseProjectHistoryWithDebounceOptions {
-  /** Debounce delay in ms (default: 500ms) */
-  debounceMs?: number
-}
-
-/**
- * useProjectHistory with debounced state pushes.
- * Useful for rapid edits (e.g., typing) where you don't want every keystroke in history.
- *
- * Maintains a local `current` ref that updates immediately for UI responsiveness,
- * while the history store is updated after debounce.
- *
- * @example
- * const { current, push, controls } = useProjectHistoryWithDebounce({ debounceMs: 500 })
- * push(newData) // Will be debounced
- */
-export function useProjectHistoryWithDebounce(options: UseProjectHistoryWithDebounceOptions = {}) {
-  const { debounceMs = 500 } = options
-  const { setState, controls, store, canBack, canForward, position } = useProjectHistory()
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const pendingRef = useRef<AnyAppData | null>(null)
-
-  // Keep a ref of the latest state for immediate access (not waiting for debounce)
-  const currentRef = useRef<AnyAppData>(store.getState())
-
-  // Subscribe to store changes to keep currentRef updated
-  useEffect(() => {
-    const unsubscribe = store.subscribe((newState) => {
-      currentRef.current = newState
-    })
-    return unsubscribe
-  }, [store])
-
-  const push = useCallback(
-    (newState: AnyAppData) => {
-      pendingRef.current = newState
-
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-      }
-
-      timerRef.current = setTimeout(() => {
-        const pending = pendingRef.current
-        if (pending) {
-          setState(pending)
-          pendingRef.current = null
-        }
-      }, debounceMs)
-    },
-    [setState, debounceMs]
-  )
-
-  // Cleanup timer on unmount
-  useEffect(
-    () => () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-      }
-    },
-    [debounceMs]
-  )
-
-  return {
-    current: currentRef.current,
-    push,
-    setState,
+    present,
+    setPresent: state.setPresent,
     controls,
     store,
     canBack,

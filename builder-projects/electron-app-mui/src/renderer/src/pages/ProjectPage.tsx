@@ -33,7 +33,12 @@ import {
 import { JSX, useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import SettingsPanel from '../components/SettingsPanel'
-import { getHistoryArray, ProjectHistoryProvider, useProjectHistoryWithDebounce, type HistoryStore } from '../context/ProjectHistoryContext'
+import {
+  getHistoryArray,
+  ProjectHistoryProvider,
+  useProjectHistory,
+  type HistoryStore
+} from '../context/ProjectHistoryContext'
 import { useSettings } from '../context/SettingsContext'
 import { GAME_REGISTRY } from '../games/registry'
 import { useProjectShortcuts } from '../hooks/useProjectShortcuts'
@@ -88,9 +93,16 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
   const [templates, setTemplates] = useState<GameTemplate[]>([])
 
   // History with debounced pushes - `current` is immediately updated for UI responsiveness
-  const { current: appData, push: pushToHistory, setState: setAppData, controls, canBack, canForward, store } = useProjectHistoryWithDebounce({ debounceMs: 500 })
+  const {
+    present: appData,
+    setPresent: setAppData,
+    controls: historyControls,
+    canBack,
+    canForward,
+    store
+  } = useProjectHistory()
   const storeRef = useRef<HistoryStore>(store)
-  
+
   // Keep store ref updated
   useEffect(() => {
     storeRef.current = store
@@ -144,16 +156,14 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
   )
 
   // ── Save ─────────────────────────────────────────────────────────────────
-  const doSave = useCallback(
-    async (currentMeta: ProjectMeta, appDataToSave: AnyAppData) => {
-      const file = buildProjectFile(currentMeta, appDataToSave)
-      // Pass full history array for asset purging
-      const history = getHistoryArray(storeRef.current!)
-      await window.electronAPI.saveProject(file, currentMeta.filePath, history)
-      setIsDirty(false)
-    },
-    []
-  )
+  const doSave = useCallback(async (currentMeta: ProjectMeta, appDataToSave: AnyAppData) => {
+    const file = buildProjectFile(currentMeta, appDataToSave)
+    // Pass full history array for asset purging
+    const history = getHistoryArray(storeRef.current!)
+    console.log(file, currentMeta.filePath, history)
+    await window.electronAPI.saveProject(file, currentMeta.filePath, history)
+    setIsDirty(false)
+  }, [])
 
   const performSaveAs = useCallback(
     async (folder: string): Promise<void> => {
@@ -203,8 +213,6 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
   const handleAppDataChange = useCallback(
     (newData: AnyAppData) => {
       // Update history with debounce (for undo/redo)
-      pushToHistory(newData)
-      // Also update store immediately for UI responsiveness
       setAppData(newData)
       setIsDirty(true)
       if (resolved.autoSave.mode === 'on-edit') {
@@ -214,7 +222,7 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
         }, 1000)
       }
     },
-    [pushToHistory, setAppData, resolved.autoSave.mode, doSave]
+    [setAppData, resolved.autoSave.mode, doSave]
   )
 
   const handleSave = useCallback(async (): Promise<void> => {
@@ -293,8 +301,8 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
   useProjectShortcuts({
     // Navigation
-    onUndo: canBack ? () => controls.back() : undefined,
-    onRedo: canForward ? () => controls.forward() : undefined,
+    onUndo: canBack ? () => historyControls.back() : undefined,
+    onRedo: canForward ? () => historyControls.forward() : undefined,
 
     // File operations
     onSave: handleSave,
@@ -398,14 +406,18 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
         <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
           <Tooltip title="Undo (Ctrl+Z)">
             <span>
-              <IconButton size="small" onClick={() => controls.back()} disabled={!canBack}>
+              <IconButton size="small" onClick={() => historyControls.back()} disabled={!canBack}>
                 <UndoIcon fontSize="small" />
               </IconButton>
             </span>
           </Tooltip>
           <Tooltip title="Redo (Ctrl+Y)">
             <span>
-              <IconButton size="small" onClick={() => controls.forward()} disabled={!canForward}>
+              <IconButton
+                size="small"
+                onClick={() => historyControls.forward()}
+                disabled={!canForward}
+              >
                 <RedoIcon fontSize="small" />
               </IconButton>
             </span>
@@ -466,11 +478,7 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
             )
           const { Editor } = entry
           return (
-            <Editor
-              appData={appData}
-              projectDir={meta.projectDir}
-              onChange={handleAppDataChange}
-            />
+            <Editor appData={appData} projectDir={meta.projectDir} onChange={handleAppDataChange} />
           )
         })()}
       </Box>
