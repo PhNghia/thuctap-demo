@@ -44,6 +44,10 @@ import { GAME_REGISTRY } from '../games/registry'
 import { useProjectShortcuts } from '../hooks/useProjectShortcuts'
 import { AnyAppData, GameTemplate, ProjectFile, ProjectMeta } from '../types'
 
+// ── Constants ────────────────────────────────────────────────────────────────
+const AUTO_SAVE_DEBOUNCE_MS = 1000
+const SNACKBAR_AUTO_HIDE_MS = 3500
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function buildTitle(templateId: string, projectName: string, filePath: string): string {
   return `[${templateId}] ${projectName} — ${filePath}`
@@ -51,7 +55,7 @@ function buildTitle(templateId: string, projectName: string, filePath: string): 
 
 function buildProjectFile(meta: ProjectMeta, appData: AnyAppData): ProjectFile {
   return {
-    version: meta.name ? '1.0.0' : '1.0.0', // always same, could track version
+    version: '1.0.0',
     templateId: meta.templateId,
     name: meta.name,
     createdAt: meta.createdAt,
@@ -76,7 +80,7 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
   const { resolved, setProjectSettings } = useSettings()
 
   // Split project state: meta (file location, name) is separate from app data (game content)
-  const [meta, setMeta] = useState<ProjectMeta | null>(() =>
+  const [meta, setMeta] = useState<ProjectMeta | null>(
     locationState
       ? {
           filePath: locationState.filePath,
@@ -141,12 +145,6 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
     window.electronAPI.setTitle(title)
   }, [meta, templateId, templates])
 
-  useEffect(() => {
-    metaRef.current = meta
-    appDataRef.current = appData
-    isDirtyRef.current = isDirty
-  }, [meta, appData, isDirty])
-
   const [snack, setSnack] = useState<{
     msg: string
     severity: 'success' | 'error' | 'info'
@@ -164,10 +162,21 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
     []
   )
 
+  // ── Refs for auto-save (kept in sync via effect below) ─────────────────────
+  const onEditTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const metaRef = useRef(meta)
+  const appDataRef = useRef(appData)
+  const isDirtyRef = useRef(isDirty)
+
+  // Keep refs in sync - update synchronously to avoid stale closures
+  metaRef.current = meta
+  appDataRef.current = appData
+  isDirtyRef.current = isDirty
+
   // ── Save ─────────────────────────────────────────────────────────────────
   const doSave = useCallback(async (currentMeta: ProjectMeta, appDataToSave: AnyAppData) => {
     const file = buildProjectFile(currentMeta, appDataToSave)
-    // Pass full history array for asset purging
     const history = getHistoryArray(storeRef.current!)
     await window.electronAPI.saveProject(file, currentMeta.filePath, history)
     setIsDirty(false)
@@ -197,37 +206,61 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
     [meta, appData, showSnack]
   )
 
-  // ── Auto-save ─────────────────────────────────────────────────────────────
-  const onEditTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const metaRef = useRef(meta)
-  const appDataRef = useRef(appData)
-  const isDirtyRef = useRef(isDirty)
-
+  // ── Auto-save: interval mode ───────────────────────────────────────────────
   useEffect(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current)
+    // Clear existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+
+    // Set up new interval if mode is 'interval'
     if (resolved.autoSave.mode === 'interval') {
       intervalRef.current = setInterval(() => {
-        if (isDirtyRef.current && metaRef.current)
-          doSave(metaRef.current, appDataRef.current).catch(() => {})
+        if (isDirtyRef.current && metaRef.current) {
+          doSave(metaRef.current, appDataRef.current).catch(() => {
+            // Silently fail - user will see dirty indicator
+          })
+        }
       }, resolved.autoSave.intervalSeconds * 1000)
     }
+
+    // Cleanup on unmount or mode change
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
     }
   }, [resolved.autoSave.mode, resolved.autoSave.intervalSeconds, doSave])
+
+  // ── Auto-save: on-edit mode ────────────────────────────────────────────────
+  useEffect(() => {
+    // Cleanup on unmount or mode change
+    return () => {
+      if (onEditTimerRef.current) {
+        clearTimeout(onEditTimerRef.current)
+        onEditTimerRef.current = null
+      }
+    }
+  }, [])
 
   // ── App data change (from editor) ─────────────────────────────────────────
   const handleAppDataChange = useCallback(
     (newData: AnyAppData) => {
-      // Update history with debounce (for undo/redo)
       setAppData(newData)
       setIsDirty(true)
+
+      // Auto-save on edit with debounce
       if (resolved.autoSave.mode === 'on-edit') {
         if (onEditTimerRef.current) clearTimeout(onEditTimerRef.current)
         onEditTimerRef.current = setTimeout(() => {
-          if (metaRef.current) doSave(metaRef.current, newData).catch(() => {})
-        }, 1000)
+          if (metaRef.current) {
+            doSave(metaRef.current, newData).catch(() => {
+              // Silently fail - user will see dirty indicator
+            })
+          }
+        }, AUTO_SAVE_DEBOUNCE_MS)
       }
     },
     [setAppData, resolved.autoSave.mode, doSave]
@@ -301,8 +334,11 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
     setRenameOpen(false)
     try {
       await doSave(updated, appData)
-    } catch {
-      /* saved later */
+    } catch (e) {
+      // Revert the rename if save fails
+      setMeta(meta)
+      showSnack(`Rename failed: ${e}`, 'error')
+      throw e
     }
   }
 
@@ -624,7 +660,7 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
       {/* ── Snackbar ── */}
       <Snackbar
         open={!!snack}
-        autoHideDuration={3500}
+        autoHideDuration={SNACKBAR_AUTO_HIDE_MS}
         onClose={() => setSnack(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >

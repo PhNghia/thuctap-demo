@@ -3,6 +3,9 @@ import { createStore, useStore } from 'zustand'
 import { travel } from 'zustand-travel'
 import { AnyAppData } from '../types'
 
+// ── Constants ────────────────────────────────────────────────────────────────
+const MAX_HISTORY_LENGTH = 50
+
 // ── Store Type ────────────────────────────────────────────────────────────────
 export type HistoryStore = ReturnType<typeof createHistoryStore>
 
@@ -11,8 +14,8 @@ export type HistoryStore = ReturnType<typeof createHistoryStore>
  * Creates a scoped history store with time-travel capabilities.
  * Uses zustand-travel middleware for automatic undo/redo management.
  *
- * The `set` function from travel middleware tracks state changes for history.
- * We expose a custom setState action that uses this `set` function.
+ * Note: We use a custom `setPresent` action instead of directly exposing `setState`
+ * to maintain a clear API and ensure the travel middleware properly tracks changes.
  */
 const createHistoryStore = (initialState: AnyAppData) => {
   return createStore<{ data: AnyAppData; setPresent: (newState: AnyAppData) => void }>()(
@@ -26,7 +29,7 @@ const createHistoryStore = (initialState: AnyAppData) => {
         }
       }),
       {
-        maxHistory: 50,
+        maxHistory: MAX_HISTORY_LENGTH,
         autoArchive: true,
         strict: process.env.NODE_ENV === 'development'
       }
@@ -91,11 +94,12 @@ export function useProjectHistory() {
 // ── Helper: Get full history array ────────────────────────────────────────────
 /**
  * Get the full history array from travel controls.
+ * Returns deep copies to prevent accidental mutation of history state.
  * Useful for saving/exporting the complete undo/redo stack.
  */
 export function getHistoryArray(store: HistoryStore): AnyAppData[] {
   const controls = store.getControls()
-  controls.getHistory()
   const history = controls.getHistory() as unknown as Array<{ data: AnyAppData }>
-  return history.map((entry) => entry.data)
+  // Deep copy each entry to prevent mutation of history state
+  return history.map((entry) => structuredClone(entry.data))
 }
