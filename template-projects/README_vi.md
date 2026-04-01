@@ -365,7 +365,12 @@ GAMES=(
 
 ### Bước 7: Đăng ký trong CI/CD
 
-Chỉnh sửa `.github/workflows/build-all.yml` và thêm game của bạn vào build matrix.
+Quy trình CI (`.github/workflows/build-all.yml`) hiện sử dụng cách tiếp cận đơn giản hóa:
+
+- **Linux runner**: Chạy `./build-templates.sh` tự động build tất cả games đã đăng ký trong mảng `GAMES`
+- **Windows/macOS runners**: Tải templates đã build từ Linux runner
+
+Không cần thay đổi file workflow khi thêm game mới — chỉ cần đăng ký trong `build-templates.sh` (Bước 6). CI sẽ tự động nhận diện.
 
 ### Bước 8: Kiểm tra
 

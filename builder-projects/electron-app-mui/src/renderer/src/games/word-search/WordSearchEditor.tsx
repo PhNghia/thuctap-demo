@@ -4,6 +4,7 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import SettingsIcon from '@mui/icons-material/Settings'
 import { Alert, Box, Button, Collapse, IconButton, Paper, Tooltip, Typography } from '@mui/material'
 import { useEntityCreateShortcut } from '@renderer/hooks/useEntityCreateShortcut'
+import { useSettings } from '@renderer/hooks/useSettings'
 import { useCallback, useState } from 'react'
 import {
   AtoZWordField,
@@ -14,7 +15,6 @@ import {
   StickyHeader
 } from '../../components/EditorShared'
 import ImagePicker from '../../components/ImagePicker'
-import { useSettings } from '../../context/SettingsContext'
 import { WordSearchAppData, WordSearchItem } from '../../types'
 import { getExcelName } from '../../utils/stringUtils'
 

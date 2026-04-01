@@ -15,8 +15,8 @@ import {
   Tooltip,
   Typography
 } from '@mui/material'
+import { useSettings } from '@renderer/hooks/useSettings'
 import React from 'react'
-import { useSettings } from '../context/SettingsContext'
 import { AutoSaveMode, ProjectSettings } from '../types'
 
 interface Props {
