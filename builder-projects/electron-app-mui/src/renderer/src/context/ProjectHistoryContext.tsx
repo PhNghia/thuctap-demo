@@ -1,3 +1,4 @@
+import { deepEqual } from 'fast-equals'
 import { createContext, useContext, useState, type ReactNode } from 'react'
 import { createStore, useStore } from 'zustand'
 import { travel } from 'zustand-travel'
@@ -20,9 +21,10 @@ export type HistoryStore = ReturnType<typeof createHistoryStore>
 const createHistoryStore = (initialState: AnyAppData) => {
   return createStore<{ data: AnyAppData; setPresent: (newState: AnyAppData) => void }>()(
     travel(
-      (set) => ({
+      (set, get) => ({
         data: { ...initialState },
         setPresent: (newState: AnyAppData) => {
+          if (deepEqual(get().data, newState)) return
           set((state) => {
             state.data = newState
           })

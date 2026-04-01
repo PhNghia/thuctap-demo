@@ -15,7 +15,8 @@ import {
 } from '@mui/material'
 import { useEntityCreateShortcut } from '@renderer/hooks/useEntityCreateShortcut'
 import { useSettings } from '@renderer/hooks/useSettings'
-import React, { useCallback } from 'react'
+import { MyEditorProps } from '@renderer/types/editor'
+import { JSX, useCallback } from 'react'
 import {
   EmptyState,
   FileDropTarget,
@@ -27,86 +28,68 @@ import {
 import ImagePicker from '../../components/ImagePicker'
 import { WhackAMoleAppData, WhackAMoleQuestion } from '../../types'
 
-interface Props {
-  appData: WhackAMoleAppData
-  projectDir: string
-  onChange: (data: WhackAMoleAppData) => void
-}
+interface Props extends MyEditorProps<WhackAMoleAppData> {}
 
-function normalize(d: WhackAMoleAppData): WhackAMoleAppData {
-  return {
-    ...d,
-    _questionCounter: d._questionCounter ?? 0,
-    questions: d.questions ?? []
-  }
-}
-
-export default function WhackAMoleEditor({
-  appData: raw,
-  projectDir,
-  onChange
-}: Props): React.ReactElement {
-  const data = normalize(raw)
+export default function WhackAMoleEditor({ form, projectDir }: Props): JSX.Element {
+  const data = form.state.values as WhackAMoleAppData
   const { resolved } = useSettings()
   const { questions } = data
 
-  // ── CRUD ──────────────────────────────────────────────────────────────────
+  // ── CRUD Helpers ──────────────────────────────────────────────────────────
+  const nextQuestionId = useCallback(() => {
+    const c = (data._questionCounter ?? 0) + 1
+    return { id: `q-${c}`, counter: c }
+  }, [data._questionCounter])
+
   const addQuestion = useCallback(
     (initialImage?: string) => {
-      const qc = data._questionCounter + 1
-      const qid = `q-${qc}`
+      const { id, counter } = nextQuestionId()
       const q: WhackAMoleQuestion = {
-        id: qid,
-        question: resolved.prefillNames ? `Question ${qc}` : '',
+        id,
+        question: resolved.prefillNames ? `Question ${counter}` : '',
         questionImage: initialImage ?? null,
-        answerText: resolved.prefillNames ? `Answer ${qc}` : '',
+        answerText: resolved.prefillNames ? `Answer ${counter}` : '',
         answerImage: null
       }
-      onChange({ ...data, _questionCounter: qc, questions: [...questions, q] })
+      form.setFieldValue('_questionCounter', counter)
+      form.insertListItem('questions', q)
     },
-    [data, questions, resolved.prefillNames, onChange]
+    [form, data, resolved.prefillNames, nextQuestionId]
   )
 
   const addQuestionFromDrop = useCallback(
     async (filePath: string) => {
-      const qc = data._questionCounter + 1
-      const qid = `q-${qc}`
-      const questionImage = await window.electronAPI.importImage(filePath, projectDir, qid)
+      const { id, counter } = nextQuestionId()
+      const questionImage = await window.electronAPI.importImage(filePath, projectDir, id)
       const q: WhackAMoleQuestion = {
-        id: qid,
-        question: resolved.prefillNames ? `Question ${qc}` : '',
+        id,
+        question: resolved.prefillNames ? `Question ${counter}` : '',
         questionImage,
-        answerText: resolved.prefillNames ? `Answer ${qc}` : '',
+        answerText: resolved.prefillNames ? `Answer ${counter}` : '',
         answerImage: null
       }
-      onChange({ ...data, _questionCounter: qc, questions: [...questions, q] })
+      form.setFieldValue('_questionCounter', counter)
+      form.insertListItem('questions', q)
     },
-    [data, questions, projectDir, resolved.prefillNames, onChange]
-  )
-
-  const updateQuestion = useCallback(
-    (id: string, patch: Partial<WhackAMoleQuestion>) => {
-      onChange({ ...data, questions: questions.map((q) => (q.id === id ? { ...q, ...patch } : q)) })
-    },
-    [data, questions, onChange]
+    [form, data, projectDir, resolved.prefillNames, nextQuestionId]
   )
 
   const deleteQuestion = useCallback(
-    (id: string) => {
-      onChange({ ...data, questions: questions.filter((q) => q.id !== id) })
+    (index: number) => {
+      form.removeListItem('questions', index)
     },
-    [data, questions, onChange]
+    [form]
   )
 
-  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  // ── Shortcuts ─────────────────────────────────────────────────────────────
   useEntityCreateShortcut({
     onTier1: addQuestion
   })
 
   // ── Validation ────────────────────────────────────────────────────────────
-  const noQuestion = questions.filter((q) => !q.question.trim())
-  const noAnswer = questions.filter((q) => !q.answerText.trim())
-  const hasIssues = noQuestion.length > 0 || noAnswer.length > 0
+  const noQuestionCount = questions.filter((q) => !q.question.trim()).length
+  const noAnswerCount = questions.filter((q) => !q.answerText.trim()).length
+  const hasIssues = noQuestionCount > 0 || noAnswerCount > 0
 
   return (
     <Box sx={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
@@ -157,19 +140,19 @@ export default function WhackAMoleEditor({
             label="With answer image"
             value={questions.filter((q) => q.answerImage !== null).length}
           />
-          {noQuestion.length > 0 && (
+          {noQuestionCount > 0 && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
               <WarningAmberIcon sx={{ fontSize: 14, color: 'warning.main' }} />
               <Typography variant="caption" color="warning.main">
-                {noQuestion.length} missing question text
+                {noQuestionCount} missing question text
               </Typography>
             </Box>
           )}
-          {noAnswer.length > 0 && (
+          {noAnswerCount > 0 && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
               <WarningAmberIcon sx={{ fontSize: 14, color: 'warning.main' }} />
               <Typography variant="caption" color="warning.main">
-                {noAnswer.length} missing answer text
+                {noAnswerCount} missing answer text
               </Typography>
             </Box>
           )}
@@ -181,8 +164,8 @@ export default function WhackAMoleEditor({
         <Collapse in={hasIssues}>
           <Alert severity="warning" sx={{ mb: 2, fontSize: '0.8rem' }}>
             {[
-              noQuestion.length > 0 && `${noQuestion.length} question(s) have no text`,
-              noAnswer.length > 0 && `${noAnswer.length} question(s) have no answer text`
+              noQuestionCount > 0 && `${noQuestionCount} question(s) have no text`,
+              noAnswerCount > 0 && `${noAnswerCount} question(s) have no answer text`
             ]
               .filter(Boolean)
               .join(' · ')}
@@ -217,12 +200,12 @@ export default function WhackAMoleEditor({
             {questions.map((q, idx) => (
               <QuestionCard
                 key={q.id}
+                form={form}
                 question={q}
                 index={idx}
                 projectDir={projectDir}
                 autoFocus={idx === questions.length - 1}
-                onUpdate={updateQuestion}
-                onDelete={deleteQuestion}
+                onDelete={() => deleteQuestion(idx)}
               />
             ))}
           </Box>
@@ -232,7 +215,7 @@ export default function WhackAMoleEditor({
   )
 }
 
-function SummaryRow({ label, value }: { label: string; value: number }): React.ReactElement {
+function SummaryRow({ label, value }: { label: string; value: number }): JSX.Element {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
       <Typography variant="caption" sx={{ color: 'text.secondary' }}>
@@ -249,25 +232,25 @@ function SummaryRow({ label, value }: { label: string; value: number }): React.R
 }
 
 function QuestionCard({
+  form,
   question,
   index,
   projectDir,
   autoFocus,
-  onUpdate,
   onDelete
 }: {
+  form: Props['form']
   question: WhackAMoleQuestion
   index: number
   projectDir: string
   autoFocus?: boolean
-  onUpdate: (id: string, p: Partial<WhackAMoleQuestion>) => void
-  onDelete: (id: string) => void
-}): React.ReactElement {
-  // Shared subgrid style for the drop target wrappers
+  onDelete: () => void
+}): JSX.Element {
+  const path = `questions[${index}]`
   const subgridStyle = {
-    gridColumn: '1 / -1', // Spans all 4 columns of the Paper
+    gridColumn: '1 / -1',
     display: 'grid',
-    gridTemplateColumns: 'subgrid', // Inherits tracks from Paper
+    gridTemplateColumns: 'subgrid',
     alignItems: 'start',
     gap: 2,
     p: 2
@@ -281,7 +264,6 @@ function QuestionCard({
         borderRadius: 2,
         background: '#1a1d27',
         overflow: 'hidden',
-        // ── MASTER GRID DEFINITION ──
         display: 'grid',
         gridTemplateColumns: 'min-content min-content 1fr min-content',
         alignItems: 'start'
@@ -291,51 +273,49 @@ function QuestionCard({
       <FileDropTarget
         onFileDrop={async (fp) => {
           const rel = await window.electronAPI.importImage(fp, projectDir, question.id)
-          onUpdate(question.id, { questionImage: rel })
+          form.setFieldValue(`${path}.questionImage`, rel)
         }}
-        sx={[
-          subgridStyle,
-          {
-            // Top row: only round the top corners to match the Paper
-            borderTopLeftRadius: 'inherit',
-            borderTopRightRadius: 'inherit'
-          }
-        ]}
+        sx={[subgridStyle, { borderTopLeftRadius: 'inherit', borderTopRightRadius: 'inherit' }]}
       >
-        {/* Col 1 */}
         <Box sx={{ mt: 0.5 }}>
           <IndexBadge index={index} color="primary" />
         </Box>
 
-        {/* Col 2 */}
-        <ImagePicker
-          projectDir={projectDir}
-          desiredNamePrefix={`${question.id}-question`}
-          value={question.questionImage}
-          onChange={(p) => onUpdate(question.id, { questionImage: p })}
-          label="Question"
-          size={80}
-        />
+        <form.Field name={`${path}.questionImage`}>
+          {(field) => (
+            <ImagePicker
+              projectDir={projectDir}
+              desiredNamePrefix={`${question.id}-question`}
+              value={field.state.value}
+              onChange={(p) => field.handleChange(p)}
+              label="Question"
+              size={80}
+            />
+          )}
+        </form.Field>
 
-        {/* Col 3 */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <NameField
-            label="Question text"
-            value={question.question}
-            onChange={(v) => onUpdate(question.id, { question: v })}
-            placeholder="e.g. Con chuột đang ở vị trí nào?"
-            autoFocus={autoFocus}
-            multiline
-          />
+          <form.Field name={`${path}.question`}>
+            {(field) => (
+              <NameField
+                label="Question text"
+                value={field.state.value}
+                onChange={(v) => field.handleChange(v)}
+                onBlur={field.handleBlur}
+                placeholder="e.g. Con chuột đang ở vị trí nào?"
+                autoFocus={autoFocus}
+                multiline
+              />
+            )}
+          </form.Field>
           <Typography variant="caption" color="text.secondary">
             This question will be displayed to students.
           </Typography>
         </Box>
 
-        {/* Col 4 */}
         <IconButton
           size="small"
-          onClick={() => onDelete(question.id)}
+          onClick={onDelete}
           sx={{
             color: 'error.main',
             opacity: 0.6,
@@ -352,22 +332,17 @@ function QuestionCard({
       <FileDropTarget
         onFileDrop={async (fp) => {
           const rel = await window.electronAPI.importImage(fp, projectDir, `${question.id}-answer`)
-          onUpdate(question.id, { answerImage: rel })
+          form.setFieldValue(`${path}.answerImage`, rel)
         }}
         sx={[
           subgridStyle,
-          {
-            // Bottom row: only round the bottom corners
-            borderBottomLeftRadius: 'inherit',
-            borderBottomRightRadius: 'inherit'
-          }
+          { borderBottomLeftRadius: 'inherit', borderBottomRightRadius: 'inherit' }
         ]}
       >
-        {/* ROW 1 of this subgrid: The Heading */}
         <Typography
           variant="overline"
           sx={{
-            gridColumn: '1 / 4', // Spans from Badge to Input
+            gridColumn: '1 / 4',
             color: '#6ee7b7',
             fontWeight: 700,
             letterSpacing: 1.2,
@@ -380,38 +355,40 @@ function QuestionCard({
           Correct Answer (The mole students should whack)
         </Typography>
 
-        {/* Fill the 4th column slot in the heading row */}
+        <Box />
         <Box />
 
-        {/* ROW 2 of this subgrid: The Content */}
-        {/* Col 1: Empty (stays aligned with Badge width) */}
-        <Box />
+        <form.Field name={`${path}.answerImage`}>
+          {(field) => (
+            <ImagePicker
+              projectDir={projectDir}
+              desiredNamePrefix={`${question.id}-answer`}
+              value={field.state.value}
+              onChange={(p) => field.handleChange(p)}
+              label="Answer"
+              size={80}
+            />
+          )}
+        </form.Field>
 
-        {/* Col 2 */}
-        <ImagePicker
-          projectDir={projectDir}
-          desiredNamePrefix={`${question.id}-answer`}
-          value={question.answerImage}
-          onChange={(p) => onUpdate(question.id, { answerImage: p })}
-          label="Answer"
-          size={80}
-        />
-
-        {/* Col 3 */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <NameField
-            label="Answer text"
-            value={question.answerText}
-            onChange={(v) => onUpdate(question.id, { answerText: v })}
-            placeholder="e.g. Dưới đất"
-            multiline={false}
-          />
+          <form.Field name={`${path}.answerText`}>
+            {(field) => (
+              <NameField
+                label="Answer text"
+                value={field.state.value}
+                onChange={(v) => field.handleChange(v)}
+                onBlur={field.handleBlur}
+                placeholder="e.g. Dưới đất"
+                multiline={false}
+              />
+            )}
+          </form.Field>
           <Typography variant="caption" color="text.secondary">
             In the game, this mole will appear among other decoy moles.
           </Typography>
         </Box>
 
-        {/* Col 4: Empty (prevents input from stretching into Trash icon area) */}
         <Box />
       </FileDropTarget>
     </Paper>

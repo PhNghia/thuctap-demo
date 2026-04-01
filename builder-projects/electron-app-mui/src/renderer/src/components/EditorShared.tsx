@@ -111,44 +111,58 @@ export function NameField({
   label,
   value,
   onChange,
+  onBlur,
   placeholder,
   autoFocus,
   multiline,
-  sx
+  sx,
+  inputRef
 }: {
   label: string
-  value: string
-  onChange: (v: string) => void
+  value?: string
+  onChange?: (v: string) => void
+  onBlur?: () => void
   placeholder?: string
   autoFocus?: boolean
   multiline?: boolean
   sx?: SxProps
+  inputRef?: React.Ref<HTMLInputElement>
 }): JSX.Element {
   const didSelect = useRef(false)
+  const internalRef = useRef<HTMLInputElement>(null)
+
   const handleRef = useCallback(
-    (input: HTMLInputElement | null) => {
-      if (input && autoFocus && !didSelect.current) {
+    (node: HTMLInputElement | null) => {
+      // @ts-ignore - handling double ref
+      internalRef.current = node
+      if (inputRef) {
+        if (typeof inputRef === 'function') inputRef(node)
+        else (inputRef as any).current = node
+      }
+
+      if (node && autoFocus && !didSelect.current) {
         didSelect.current = true
         setTimeout(() => {
-          input.focus()
-          input.select()
+          node.focus()
+          node.select()
         }, 30)
       }
     },
-    [autoFocus]
+    [autoFocus, inputRef]
   )
 
   return (
     <TextField
       label={label}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+      onBlur={onBlur}
       placeholder={placeholder}
       multiline={multiline}
       minRows={multiline ? 2 : undefined}
       sx={[{ flex: 1 }, ...(Array.isArray(sx) ? sx : [sx])]}
-      error={!value.trim()}
-      helperText={!value.trim() ? 'Required' : ''}
+      error={value !== undefined && !value.trim()}
+      helperText={value !== undefined && !value.trim() ? 'Required' : ''}
       inputRef={handleRef}
     />
   )
@@ -165,32 +179,46 @@ export function AtoZWordField({
   label,
   value,
   onChange,
+  onBlur,
   placeholder,
   autoFocus,
-  sx
+  sx,
+  inputRef
 }: {
   label: string
-  value: string
-  onChange: (v: string) => void
+  value?: string
+  onChange?: (v: string) => void
+  onBlur?: () => void
   placeholder?: string
   autoFocus?: boolean
   sx?: SxProps
+  inputRef?: React.Ref<HTMLInputElement>
 }): JSX.Element {
-  const wordText = value.trim().toUpperCase()
+  const displayValue = value ?? ''
+  const wordText = displayValue.trim().toUpperCase()
   const isInvalid = wordText && !/^[A-Z]+$/.test(wordText)
 
   const didSelect = useRef(false)
+  const internalRef = useRef<HTMLInputElement>(null)
+
   const handleRef = useCallback(
-    (input: HTMLInputElement | null) => {
-      if (input && autoFocus && !didSelect.current) {
+    (node: HTMLInputElement | null) => {
+      // @ts-ignore - handling double ref
+      internalRef.current = node
+      if (inputRef) {
+        if (typeof inputRef === 'function') inputRef(node)
+        else (inputRef as any).current = node
+      }
+
+      if (node && autoFocus && !didSelect.current) {
         didSelect.current = true
         setTimeout(() => {
-          input.focus()
-          input.select()
+          node.focus()
+          node.select()
         }, 30)
       }
     },
-    [autoFocus]
+    [autoFocus, inputRef]
   )
 
   return (
@@ -208,11 +236,18 @@ export function AtoZWordField({
       <TextField
         label={label}
         value={value}
-        onChange={(e) => onChange(e.target.value.toUpperCase())}
+        onChange={onChange ? (e) => onChange(e.target.value.toUpperCase()) : undefined}
+        onBlur={onBlur}
         placeholder={placeholder}
         size="small"
-        error={!!isInvalid || !value.trim()}
-        helperText={!value.trim() ? 'Required' : isInvalid ? 'Only A–Z letters allowed' : ''}
+        error={!!isInvalid || (value !== undefined && !value.trim())}
+        helperText={
+          value !== undefined && !value.trim()
+            ? 'Required'
+            : isInvalid
+              ? 'Only A–Z letters allowed'
+              : ''
+        }
         inputProps={{ style: { fontFamily: 'monospace', letterSpacing: 4, fontWeight: 700 } }}
         inputRef={handleRef}
         sx={{ width: 220 }}

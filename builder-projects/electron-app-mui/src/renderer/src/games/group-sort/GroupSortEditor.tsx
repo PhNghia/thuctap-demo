@@ -22,6 +22,7 @@ import {
 } from '@mui/material'
 import { useEntityCreateShortcut } from '@renderer/hooks/useEntityCreateShortcut'
 import { useSettings } from '@renderer/hooks/useSettings'
+import { MyEditorProps } from '@renderer/types/editor'
 import { JSX, useCallback, useState } from 'react'
 import {
   EmptyState,
@@ -34,24 +35,12 @@ import {
 import ImagePicker from '../../components/ImagePicker'
 import { GroupSortAppData, GroupSortGroup, GroupSortItem } from '../../types'
 
-interface Props {
-  appData: GroupSortAppData
-  projectDir: string
-  onChange: (data: GroupSortAppData) => void
-}
+interface Props extends MyEditorProps<GroupSortAppData> {}
 
 type Tab = 'groups' | 'items' | 'overview'
 
-function normalize(d: GroupSortAppData): GroupSortAppData {
-  return { ...d, _groupCounter: d._groupCounter ?? 0, _itemCounter: d._itemCounter ?? 0 }
-}
-
-export default function GroupSortEditor({
-  appData: raw,
-  projectDir,
-  onChange
-}: Props): JSX.Element {
-  const data = normalize(raw)
+export default function GroupSortEditor({ form, projectDir }: Props): JSX.Element {
+  const data = form.state.values
   const [tab, setTab] = useState<Tab>('groups')
   const { resolved } = useSettings()
   const { groups, items } = data
@@ -74,9 +63,10 @@ export default function GroupSortEditor({
         name: resolved.prefillNames ? `Group ${counter}` : '',
         imagePath: initialImage ?? null
       }
-      onChange({ ...data, _groupCounter: counter, groups: [...groups, g] })
+      form.setFieldValue('groups', (prev) => [...prev, g])
+      form.setFieldValue('_groupCounter', counter)
     },
-    [data, groups, resolved.prefillNames, onChange, nextGroupId]
+    [form, nextGroupId, resolved.prefillNames]
   )
 
   const addGroupFromDrop = useCallback(
@@ -88,27 +78,20 @@ export default function GroupSortEditor({
         name: resolved.prefillNames ? `Group ${counter}` : '',
         imagePath
       }
-      onChange({ ...data, _groupCounter: counter, groups: [...groups, g] })
+      form.setFieldValue('groups', (prev) => [...prev, g])
+      form.setFieldValue('_groupCounter', counter)
     },
-    [data, groups, projectDir, resolved.prefillNames, onChange, nextGroupId]
-  )
-
-  const updateGroup = useCallback(
-    (id: string, patch: Partial<GroupSortGroup>) => {
-      onChange({ ...data, groups: groups.map((g) => (g.id === id ? { ...g, ...patch } : g)) })
-    },
-    [data, groups, onChange]
+    [form, nextGroupId, projectDir, resolved.prefillNames]
   )
 
   const deleteGroup = useCallback(
     (id: string) => {
-      onChange({
-        ...data,
-        groups: groups.filter((g) => g.id !== id),
-        items: items.map((i) => (i.groupId === id ? { ...i, groupId: '' } : i))
-      })
+      form.setFieldValue('groups', (prev) => prev.filter((g) => g.id !== id))
+      form.setFieldValue('items', (prev) =>
+        prev.map((i) => (i.groupId === id ? { ...i, groupId: '' } : i))
+      )
     },
-    [data, groups, items, onChange]
+    [form]
   )
 
   // groupId defaults to the last group (or first as fallback for empty)
@@ -122,9 +105,10 @@ export default function GroupSortEditor({
         imagePath: initialImage ?? null,
         groupId: targetGroupId
       }
-      onChange({ ...data, _itemCounter: counter, items: [...items, i] })
+      form.setFieldValue('items', (prev) => [...prev, i])
+      form.setFieldValue('_itemCounter', counter)
     },
-    [data, items, groups, resolved.prefillNames, onChange, nextItemId]
+    [form, groups, nextItemId, resolved.prefillNames]
   )
 
   const addItemFromDrop = useCallback(
@@ -138,23 +122,17 @@ export default function GroupSortEditor({
         imagePath,
         groupId: targetGroupId
       }
-      onChange({ ...data, _itemCounter: counter, items: [...items, i] })
+      form.setFieldValue('items', (prev) => [...prev, i])
+      form.setFieldValue('_itemCounter', counter)
     },
-    [data, items, groups, projectDir, resolved.prefillNames, onChange, nextItemId]
-  )
-
-  const updateItem = useCallback(
-    (id: string, patch: Partial<GroupSortItem>) => {
-      onChange({ ...data, items: items.map((i) => (i.id === id ? { ...i, ...patch } : i)) })
-    },
-    [data, items, onChange]
+    [form, groups, nextItemId, projectDir, resolved.prefillNames]
   )
 
   const deleteItem = useCallback(
     (id: string) => {
-      onChange({ ...data, items: items.filter((i) => i.id !== id) })
+      form.setFieldValue('items', (prev) => prev.filter((i) => i.id !== id))
     },
-    [data, items, onChange]
+    [form]
   )
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
@@ -294,27 +272,28 @@ export default function GroupSortEditor({
 
         {tab === 'groups' && (
           <GroupsTab
+            form={form}
             groups={groups}
             projectDir={projectDir}
             onAdd={addGroup}
             onAddFromDrop={addGroupFromDrop}
-            onUpdate={updateGroup}
             onDelete={deleteGroup}
           />
         )}
         {tab === 'items' && (
           <ItemsTab
+            form={form}
             items={items}
             groups={groups}
             projectDir={projectDir}
             onAdd={addItem}
             onAddFromDrop={addItemFromDrop}
-            onUpdate={updateItem}
             onDelete={deleteItem}
           />
         )}
         {tab === 'overview' && (
           <OverviewTab
+            form={form}
             groups={groups}
             items={items}
             projectDir={projectDir}
@@ -322,8 +301,6 @@ export default function GroupSortEditor({
             onAddGroupFromDrop={addGroupFromDrop}
             onAddItem={addItem}
             onAddItemFromDrop={addItemFromDrop}
-            onUpdateGroup={updateGroup}
-            onUpdateItem={updateItem}
             onDeleteGroup={deleteGroup}
             onDeleteItem={deleteItem}
             unassigned={unassigned}
@@ -336,18 +313,18 @@ export default function GroupSortEditor({
 
 // ── Groups Tab ────────────────────────────────────────────────────────────────
 function GroupsTab({
+  form,
   groups,
   projectDir,
   onAdd,
   onAddFromDrop,
-  onUpdate,
   onDelete
 }: {
+  form: Props['form']
   groups: GroupSortGroup[]
   projectDir: string
   onAdd: () => void
   onAddFromDrop: (fp: string) => void
-  onUpdate: (id: string, p: Partial<GroupSortGroup>) => void
   onDelete: (id: string) => void
 }): JSX.Element {
   return (
@@ -379,10 +356,10 @@ function GroupsTab({
           {groups.map((g, idx) => (
             <GroupCard
               key={g.id}
+              form={form}
               group={g}
               index={idx}
               projectDir={projectDir}
-              onUpdate={onUpdate}
               onDelete={onDelete}
               autoFocus={idx === groups.length - 1}
             />
@@ -394,25 +371,25 @@ function GroupsTab({
 }
 
 function GroupCard({
+  form,
   group,
   index,
   projectDir,
-  onUpdate,
   onDelete,
   autoFocus
 }: {
+  form: Props['form']
   group: GroupSortGroup
   index: number
   projectDir: string
   autoFocus?: boolean
-  onUpdate: (id: string, p: Partial<GroupSortGroup>) => void
   onDelete: (id: string) => void
 }): JSX.Element {
   return (
     <FileDropTarget
       onFileDrop={async (fp) => {
         const rel = await window.electronAPI.importImage(fp, projectDir, group.id)
-        onUpdate(group.id, { imagePath: rel })
+        form.setFieldValue(`groups[${index}].imagePath`, rel)
       }}
     >
       <Paper
@@ -430,20 +407,31 @@ function GroupCard({
         }}
       >
         <IndexBadge index={index} color="primary" />
-        <ImagePicker
-          projectDir={projectDir}
-          desiredNamePrefix={group.id}
-          value={group.imagePath}
-          onChange={(p) => onUpdate(group.id, { imagePath: p })}
-          label="Group image"
-          size={72}
+        <form.Field
+          name={`groups[${index}].imagePath`}
+          children={(field) => (
+            <ImagePicker
+              projectDir={projectDir}
+              desiredNamePrefix={group.id}
+              value={field.state.value}
+              onChange={field.handleChange}
+              label="Group image"
+              size={72}
+            />
+          )}
         />
-        <NameField
-          label="Group name"
-          value={group.name}
-          onChange={(v) => onUpdate(group.id, { name: v })}
-          placeholder="e.g. Animals, Fruits, Colors…"
-          autoFocus={autoFocus}
+        <form.Field
+          name={`groups[${index}].name`}
+          children={(field) => (
+            <NameField
+              label="Group name"
+              value={field.state.value}
+              onChange={field.handleChange}
+              onBlur={field.handleBlur}
+              placeholder="e.g. Animals, Fruits, Colors…"
+              autoFocus={autoFocus}
+            />
+          )}
         />
         <Tooltip title="Delete group">
           <IconButton
@@ -461,20 +449,20 @@ function GroupCard({
 
 // ── Items Tab ─────────────────────────────────────────────────────────────────
 function ItemsTab({
+  form,
   items,
   groups,
   projectDir,
   onAdd,
   onAddFromDrop,
-  onUpdate,
   onDelete
 }: {
+  form: Props['form']
   items: GroupSortItem[]
   groups: GroupSortGroup[]
   projectDir: string
   onAdd: (groupId?: string) => void
   onAddFromDrop: (fp: string) => void
-  onUpdate: (id: string, p: Partial<GroupSortItem>) => void
   onDelete: (id: string) => void
 }): JSX.Element {
   return (
@@ -512,11 +500,11 @@ function ItemsTab({
           {items.map((item, idx) => (
             <ItemCard
               key={item.id}
+              form={form}
               item={item}
               index={idx}
               groups={groups}
               projectDir={projectDir}
-              onUpdate={onUpdate}
               onDelete={onDelete}
               autoFocus={idx === items.length - 1}
             />
@@ -528,20 +516,20 @@ function ItemsTab({
 }
 
 function ItemCard({
+  form,
   item,
   index,
   groups,
   projectDir,
-  onUpdate,
   onDelete,
   autoFocus
 }: {
+  form: Props['form']
   item: GroupSortItem
   index: number
   groups: GroupSortGroup[]
   projectDir: string
   autoFocus?: boolean
-  onUpdate: (id: string, p: Partial<GroupSortItem>) => void
   onDelete: (id: string) => void
 }): JSX.Element {
   const assigned = groups.find((g) => g.id === item.groupId)
@@ -549,7 +537,7 @@ function ItemCard({
     <FileDropTarget
       onFileDrop={async (fp) => {
         const rel = await window.electronAPI.importImage(fp, projectDir, item.id)
-        onUpdate(item.id, { imagePath: rel })
+        form.setFieldValue(`items[${index}].imagePath`, rel)
       }}
     >
       <Paper
@@ -568,44 +556,61 @@ function ItemCard({
         }}
       >
         <IndexBadge index={index} color="secondary" />
-        <ImagePicker
-          projectDir={projectDir}
-          desiredNamePrefix={item.id}
-          value={item.imagePath}
-          onChange={(p) => onUpdate(item.id, { imagePath: p })}
-          label="Item image"
-          size={72}
-        />
-        <NameField
-          label="Item name"
-          value={item.name}
-          onChange={(v) => onUpdate(item.id, { name: v })}
-          placeholder="e.g. Dog, Apple, Red…"
-          autoFocus={autoFocus}
-        />
-        <FormControl size="small" sx={{ minWidth: 160 }} error={!assigned}>
-          <InputLabel>Belongs to group</InputLabel>
-          <Select
-            value={item.groupId}
-            label="Belongs to group"
-            onChange={(e) => onUpdate(item.id, { groupId: e.target.value })}
-          >
-            {groups.map((g) => (
-              <MenuItem key={g.id} value={g.id}>
-                {g.name || '(unnamed)'}
-              </MenuItem>
-            ))}
-          </Select>
-          {!assigned && (
-            <Typography
-              variant="caption"
-              color="warning.main"
-              sx={{ mt: 0.5, fontSize: '0.65rem' }}
-            >
-              Unassigned
-            </Typography>
+        <form.Field
+          name={`items[${index}].imagePath`}
+          children={(field) => (
+            <ImagePicker
+              projectDir={projectDir}
+              desiredNamePrefix={item.id}
+              value={field.state.value}
+              onChange={field.handleChange}
+              label="Item image"
+              size={72}
+            />
           )}
-        </FormControl>
+        />
+        <form.Field
+          name={`items[${index}].name`}
+          children={(field) => (
+            <NameField
+              label="Item name"
+              value={field.state.value}
+              onChange={field.handleChange}
+              onBlur={field.handleBlur}
+              placeholder="e.g. Dog, Apple, Red…"
+              autoFocus={autoFocus}
+            />
+          )}
+        />
+        <form.Field
+          name={`items[${index}].groupId`}
+          children={(field) => (
+            <FormControl size="small" sx={{ minWidth: 160 }} error={!assigned}>
+              <InputLabel>Belongs to group</InputLabel>
+              <Select
+                value={field.state.value}
+                label="Belongs to group"
+                onChange={(e) => field.handleChange(e.target.value as string)}
+                onBlur={field.handleBlur}
+              >
+                {groups.map((g) => (
+                  <MenuItem key={g.id} value={g.id}>
+                    {g.name || '(unnamed)'}
+                  </MenuItem>
+                ))}
+              </Select>
+              {!assigned && (
+                <Typography
+                  variant="caption"
+                  color="warning.main"
+                  sx={{ mt: 0.5, fontSize: '0.65rem' }}
+                >
+                  Unassigned
+                </Typography>
+              )}
+            </FormControl>
+          )}
+        />
         <Tooltip title="Delete item">
           <IconButton
             size="small"
@@ -622,6 +627,7 @@ function ItemCard({
 
 // ── Overview Tab ──────────────────────────────────────────────────────────────
 function OverviewTab({
+  form,
   groups,
   items,
   projectDir,
@@ -629,12 +635,11 @@ function OverviewTab({
   onAddGroupFromDrop,
   onAddItem,
   onAddItemFromDrop,
-  onUpdateGroup,
-  onUpdateItem,
   onDeleteGroup,
   onDeleteItem,
   unassigned
 }: {
+  form: Props['form']
   groups: GroupSortGroup[]
   items: GroupSortItem[]
   projectDir: string
@@ -643,8 +648,6 @@ function OverviewTab({
   onAddGroupFromDrop: (fp: string) => void
   onAddItem: (gid?: string) => void
   onAddItemFromDrop: (fp: string, gid?: string) => void
-  onUpdateGroup: (id: string, p: Partial<GroupSortGroup>) => void
-  onUpdateItem: (id: string, p: Partial<GroupSortItem>) => void
   onDeleteGroup: (id: string) => void
   onDeleteItem: (id: string) => void
 }): JSX.Element {
@@ -698,7 +701,7 @@ function OverviewTab({
                 <FileDropTarget
                   onFileDrop={async (fp) => {
                     const rel = await window.electronAPI.importImage(fp, projectDir, group.id)
-                    onUpdateGroup(group.id, { imagePath: rel })
+                    form.setFieldValue(`groups[${gIdx}].imagePath`, rel)
                   }}
                 >
                   <Paper
@@ -715,19 +718,30 @@ function OverviewTab({
                     }}
                   >
                     <IndexBadge index={gIdx} color="primary" />
-                    <ImagePicker
-                      projectDir={projectDir}
-                      desiredNamePrefix={group.id}
-                      value={group.imagePath}
-                      onChange={(p) => onUpdateGroup(group.id, { imagePath: p })}
-                      label="Image"
-                      size={56}
+                    <form.Field
+                      name={`groups[${gIdx}].imagePath`}
+                      children={(field) => (
+                        <ImagePicker
+                          projectDir={projectDir}
+                          desiredNamePrefix={group.id}
+                          value={field.state.value}
+                          onChange={field.handleChange}
+                          label="Image"
+                          size={56}
+                        />
+                      )}
                     />
-                    <NameField
-                      label="Group name"
-                      value={group.name}
-                      onChange={(v) => onUpdateGroup(group.id, { name: v })}
-                      placeholder="Group name…"
+                    <form.Field
+                      name={`groups[${gIdx}].name`}
+                      children={(field) => (
+                        <NameField
+                          label="Group name"
+                          value={field.state.value}
+                          onChange={field.handleChange}
+                          onBlur={field.handleBlur}
+                          placeholder="Group name…"
+                        />
+                      )}
                     />
                     <Chip
                       label={`${gItems.length} item${gItems.length !== 1 ? 's' : ''}`}
@@ -774,53 +788,74 @@ function OverviewTab({
                   </Box>
                 ) : (
                   <Box sx={{ ml: 4, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {gItems.map((item, iIdx) => (
-                      <FileDropTarget
-                        key={item.id}
-                        onFileDrop={async (fp) => {
-                          const rel = await window.electronAPI.importImage(fp, projectDir, item.id)
-                          onUpdateItem(item.id, { imagePath: rel })
-                        }}
-                      >
-                        <Paper
-                          elevation={0}
-                          sx={{
-                            p: 1.5,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 2,
-                            border: '1px solid rgba(255,255,255,0.06)',
-                            borderRadius: 2,
-                            background: '#1a1d27'
+                    {gItems.map((item) => {
+                      const itemIdx = items.findIndex((i) => i.id === item.id)
+                      return (
+                        <FileDropTarget
+                          key={item.id}
+                          onFileDrop={async (fp) => {
+                            const rel = await window.electronAPI.importImage(
+                              fp,
+                              projectDir,
+                              item.id
+                            )
+                            form.setFieldValue(`items[${itemIdx}].imagePath`, rel)
                           }}
                         >
-                          <IndexBadge index={iIdx} color="secondary" />
-                          <ImagePicker
-                            projectDir={projectDir}
-                            desiredNamePrefix={item.id}
-                            value={item.imagePath}
-                            onChange={(p) => onUpdateItem(item.id, { imagePath: p })}
-                            label="Image"
-                            size={52}
-                          />
-                          <NameField
-                            label="Item name"
-                            value={item.name}
-                            onChange={(v) => onUpdateItem(item.id, { name: v })}
-                            placeholder="Item name…"
-                          />
-                          <Tooltip title="Delete">
-                            <IconButton
-                              size="small"
-                              onClick={() => onDeleteItem(item.id)}
-                              sx={{ color: 'error.main', opacity: 0.6, '&:hover': { opacity: 1 } }}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </Paper>
-                      </FileDropTarget>
-                    ))}
+                          <Paper
+                            elevation={0}
+                            sx={{
+                              p: 1.5,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 2,
+                              border: '1px solid rgba(255,255,255,0.06)',
+                              borderRadius: 2,
+                              background: '#1a1d27'
+                            }}
+                          >
+                            <form.Field
+                              name={`items[${itemIdx}].imagePath`}
+                              children={(field) => (
+                                <ImagePicker
+                                  projectDir={projectDir}
+                                  desiredNamePrefix={item.id}
+                                  value={field.state.value}
+                                  onChange={field.handleChange}
+                                  label="Image"
+                                  size={52}
+                                />
+                              )}
+                            />
+                            <form.Field
+                              name={`items[${itemIdx}].name`}
+                              children={(field) => (
+                                <NameField
+                                  label="Item name"
+                                  value={field.state.value}
+                                  onChange={field.handleChange}
+                                  onBlur={field.handleBlur}
+                                  placeholder="Item name…"
+                                />
+                              )}
+                            />
+                            <Tooltip title="Delete">
+                              <IconButton
+                                size="small"
+                                onClick={() => onDeleteItem(item.id)}
+                                sx={{
+                                  color: 'error.main',
+                                  opacity: 0.6,
+                                  '&:hover': { opacity: 1 }
+                                }}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Paper>
+                        </FileDropTarget>
+                      )
+                    })}
                   </Box>
                 )}
               </Box>
@@ -836,67 +871,86 @@ function OverviewTab({
                 </Typography>
               </Box>
               <Box sx={{ ml: 4, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {unassigned.map((item, iIdx) => (
-                  <FileDropTarget
-                    key={item.id}
-                    onFileDrop={async (fp) => {
-                      const rel = await window.electronAPI.importImage(fp, projectDir, item.id)
-                      onUpdateItem(item.id, { imagePath: rel })
-                    }}
-                  >
-                    <Paper
-                      elevation={0}
-                      sx={{
-                        p: 1.5,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 2,
-                        border: '1px solid rgba(251,191,36,0.3)',
-                        borderRadius: 2,
-                        background: '#1a1d27'
+                {unassigned.map((item) => {
+                  const itemIdx = items.findIndex((i) => i.id === item.id)
+                  return (
+                    <FileDropTarget
+                      key={item.id}
+                      onFileDrop={async (fp) => {
+                        const rel = await window.electronAPI.importImage(fp, projectDir, item.id)
+                        form.setFieldValue(`items[${itemIdx}].imagePath`, rel)
                       }}
                     >
-                      <IndexBadge index={iIdx} color="warning" />
-                      <ImagePicker
-                        projectDir={projectDir}
-                        desiredNamePrefix={item.id}
-                        value={item.imagePath}
-                        onChange={(p) => onUpdateItem(item.id, { imagePath: p })}
-                        label="Image"
-                        size={52}
-                      />
-                      <NameField
-                        label="Item name"
-                        value={item.name}
-                        onChange={(v) => onUpdateItem(item.id, { name: v })}
-                        placeholder="Item name…"
-                      />
-                      <FormControl size="small" sx={{ minWidth: 140 }} error>
-                        <InputLabel>Assign to group</InputLabel>
-                        <Select
-                          value=""
-                          label="Assign to group"
-                          onChange={(e) => onUpdateItem(item.id, { groupId: e.target.value })}
-                        >
-                          {groups.map((g) => (
-                            <MenuItem key={g.id} value={g.id}>
-                              {g.name || '(unnamed)'}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                      <Tooltip title="Delete">
-                        <IconButton
-                          size="small"
-                          onClick={() => onDeleteItem(item.id)}
-                          sx={{ color: 'error.main', opacity: 0.6, '&:hover': { opacity: 1 } }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Paper>
-                  </FileDropTarget>
-                ))}
+                      <Paper
+                        elevation={0}
+                        sx={{
+                          p: 1.5,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 2,
+                          border: '1px solid rgba(251,191,36,0.3)',
+                          borderRadius: 2,
+                          background: '#1a1d27'
+                        }}
+                      >
+                        <form.Field
+                          name={`items[${itemIdx}].imagePath`}
+                          children={(field) => (
+                            <ImagePicker
+                              projectDir={projectDir}
+                              desiredNamePrefix={item.id}
+                              value={field.state.value}
+                              onChange={field.handleChange}
+                              label="Image"
+                              size={52}
+                            />
+                          )}
+                        />
+                        <form.Field
+                          name={`items[${itemIdx}].name`}
+                          children={(field) => (
+                            <NameField
+                              label="Item name"
+                              value={field.state.value}
+                              onChange={field.handleChange}
+                              onBlur={field.handleBlur}
+                              placeholder="Item name…"
+                            />
+                          )}
+                        />
+                        <form.Field
+                          name={`items[${itemIdx}].groupId`}
+                          children={(field) => (
+                            <FormControl size="small" sx={{ minWidth: 140 }} error>
+                              <InputLabel>Assign to group</InputLabel>
+                              <Select
+                                value={field.state.value}
+                                label="Assign to group"
+                                onChange={(e) => field.handleChange(e.target.value as string)}
+                                onBlur={field.handleBlur}
+                              >
+                                {groups.map((g) => (
+                                  <MenuItem key={g.id} value={g.id}>
+                                    {g.name || '(unnamed)'}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          )}
+                        />
+                        <Tooltip title="Delete">
+                          <IconButton
+                            size="small"
+                            onClick={() => onDeleteItem(item.id)}
+                            sx={{ color: 'error.main', opacity: 0.6, '&:hover': { opacity: 1 } }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Paper>
+                    </FileDropTarget>
+                  )
+                })}
               </Box>
             </Box>
           )}
