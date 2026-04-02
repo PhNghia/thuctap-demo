@@ -133,8 +133,11 @@ export default function PointsSidebar({
                     return (
                       <Box
                         key={p.id}
+                        id={`point-entry-${p.id}`}
+                        onClick={() => onFocusPoint(p)}
                         sx={{
                           p: 1.25,
+                          cursor: 'pointer',
                           borderRadius: 2.5,
                           background: isFocused 
                             ? 'rgba(255, 255, 255, 0.15)' 
@@ -173,16 +176,13 @@ export default function PointsSidebar({
                             {index + 1}
                           </Box>
 
-                          {/* Clickable Info Area */}
-                          <Box 
-                            sx={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
-                            onClick={() => onFocusPoint(p)}
-                          >
+                          {/* Info Area (Text and coordinates) */}
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
                             <InputBase
                               size="small"
                               value={p.text}
                               onChange={(e) => onUpdatePoint(p.id, { text: e.target.value })}
-                              onClick={(e) => e.stopPropagation()} // Prevent focus when typing
+                              onClick={(e) => e.stopPropagation()} // Prevent focus overlap
                               placeholder="Label..."
                               sx={{
                                 width: '100%',
@@ -198,8 +198,8 @@ export default function PointsSidebar({
                           </Box>
 
                           {/* Actions */}
-                          <Stack direction="row" spacing={0.25}>
-                            <IconButton size="small" onClick={() => onUpdatePoint(p.id, { isHidden: !p.isHidden })}>
+                          <Stack direction="row" spacing={0.25} onClick={(e) => e.stopPropagation()}>
+                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); onUpdatePoint(p.id, { isHidden: !p.isHidden }); }}>
                               {p.isHidden ? <VisibilityOff sx={{ fontSize: 18 }} /> : <Visibility sx={{ fontSize: 18 }} />}
                             </IconButton>
                             <Tooltip title="Absolute Positioning">
@@ -208,11 +208,11 @@ export default function PointsSidebar({
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="Follow on image">
-                              <IconButton size="small" onClick={() => onFocusPoint(p)}>
+                              <IconButton size="small" onClick={(e) => { e.stopPropagation(); setAbsPosAnchor(null); /* and other focus logic if needed */ }}>
                                 <FilterCenterFocus sx={{ fontSize: 18 }} />
                               </IconButton>
                             </Tooltip>
-                            <IconButton size="small" color="error" onClick={() => onDeletePoint(p.id)}>
+                            <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); onDeletePoint(p.id); }}>
                               <Delete sx={{ fontSize: 18 }} />
                             </IconButton>
                           </Stack>

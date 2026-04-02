@@ -1,22 +1,21 @@
-import { Box, IconButton, InputBase, Paper, Stack, Tooltip } from '@mui/material'
+import { Box, IconButton, InputBase, Paper, Stack, Tooltip, Typography } from '@mui/material'
 import { motion, useMotionValue } from 'framer-motion'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Delete, MyLocation } from '@mui/icons-material'
+import { Delete, FilterCenterFocus } from '@mui/icons-material'
 import { LabelledDiagramPoint } from '../../../types'
 import { POINT_COLORS } from './PointsSidebar'
 
 interface Props {
   point: LabelledDiagramPoint
   index: number
-  isFocused?: boolean
-  isNearby?: boolean
+  isFocused: boolean
   imgSize: { width: number; height: number }
   transform: { x: number; y: number; scale: number }
   onMove: (id: string, x: number, y: number) => void
   onFocus: (id: string) => void
   onUpdateText: (text: string) => void
   onDelete: () => void
-  onFocusInSidebar: () => void
+  onScrollToSidebar: () => void
   onDragStart: () => void
   onDragEnd: () => void
 }
@@ -25,14 +24,13 @@ export default function DiagramPointBadge({
   point,
   index, 
   isFocused, 
-  isNearby,
   imgSize,
   transform,
   onMove, 
   onFocus,
   onUpdateText,
   onDelete,
-  onFocusInSidebar,
+  onScrollToSidebar,
   onDragStart,
   onDragEnd
 }: Props) {
@@ -64,7 +62,7 @@ export default function DiagramPointBadge({
       const pRect = parent.getBoundingClientRect()
       
       // Vertical flip
-      if (rect.top - 120 < pRect.top) { // Offset for Popover + Buffer
+      if (rect.top - 120 < pRect.top) {
         setPopoverPos('bottom')
       } else {
         setPopoverPos('top')
@@ -85,11 +83,9 @@ export default function DiagramPointBadge({
     const parent = badgeRef.current?.closest('.labelled-diagram-editor')
     if (!parent) return
     
-    // Find the relative container that holds the image
-    const rect = parent.querySelector('.MuiBox-root img')?.getBoundingClientRect()
+    const rect = parent.querySelector('.labelled-diagram-editor-canvas img')?.getBoundingClientRect()
     if (!rect) return
     
-    // Calculate new % based on dropped position
     const dropX = info.point.x - rect.left
     const dropY = info.point.y - rect.top
     
@@ -106,33 +102,42 @@ export default function DiagramPointBadge({
     <Box
       sx={{
         position: 'absolute',
-        inset: -16,
+        inset: -14,
         pointerEvents: 'none',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        animation: 'rotateLock 12s linear infinite',
+        animation: 'rotateLock 15s linear infinite',
         '@keyframes rotateLock': {
           from: { transform: 'rotate(0deg)' },
           to: { transform: 'rotate(360deg)' }
         }
       }}
     >
-      {[0, 90, 180, 270].map((deg) => (
+      {[
+        { t: 0, l: 0, r: 'auto', b: 'auto', rot: 0, br: '0 0 3px 0' },
+        { t: 0, r: 0, l: 'auto', b: 'auto', rot: 90, br: '0 0 3px 0' },
+        { b: 0, r: 0, t: 'auto', l: 'auto', rot: 180, br: '0 0 3px 0' },
+        { b: 0, l: 0, t: 'auto', r: 'auto', rot: 270, br: '0 0 3px 0' }
+      ].map((pos, i) => (
         <Box
-          key={deg}
+          key={i}
           sx={{
             position: 'absolute',
-            width: 10,
-            height: 10,
+            top: pos.t,
+            left: pos.l,
+            right: pos.r,
+            bottom: pos.b,
+            width: 8,
+            height: 8,
             borderRight: `3px solid ${color}`,
             borderBottom: `3px solid ${color}`,
-            borderRadius: '0 0 2px 0',
-            transform: `rotate(${deg}deg) translate(-14px, -14px)`,
-            animation: 'lockPulse 2.5s ease-in-out infinite',
+            borderRadius: pos.br,
+            transform: `rotate(${pos.rot}deg)`,
+            animation: 'lockPulse 3s ease-in-out infinite',
             '@keyframes lockPulse': {
-              '0%, 100%': { opacity: 0.6, transform: `rotate(${deg}deg) translate(-14px, -14px)` },
-              '50%': { opacity: 1, transform: `rotate(${deg}deg) translate(-18px, -18px)` }
+              '0%, 100%': { opacity: 0.7, transform: `rotate(${pos.rot}deg) translate(0, 0)` },
+              '50%': { opacity: 1, transform: `rotate(${pos.rot}deg) translate(-3px, -3px)` }
             }
           }}
         />
@@ -149,10 +154,11 @@ export default function DiagramPointBadge({
         position: 'absolute',
         left: posX,
         top: posY,
-        transform: 'translate(-50%, -50%)', // Center alignment fix
+        transform: 'translate(-50%, -50%)',
         zIndex: isFocused ? 10 : 5,
         pointerEvents: 'auto'
       }}
+      className="labelled-diagram-point-badge"
     >
       <motion.div
         drag={isFocused}
@@ -170,8 +176,8 @@ export default function DiagramPointBadge({
       >
         <Box
           sx={{
-            width: 32,
-            height: 32,
+            width: 30,
+            height: 30,
             borderRadius: '50%',
             backgroundColor: color,
             color: '#fff',
@@ -179,46 +185,20 @@ export default function DiagramPointBadge({
             alignItems: 'center',
             justifyContent: 'center',
             fontWeight: 800,
-            fontSize: '1rem',
-            boxShadow: isFocused ? `0 0 20px ${color}80, 0 4px 12px rgba(0,0,0,0.4)` : '0 4px 8px rgba(0,0,0,0.3)',
-            border: '2.5px solid rgba(255,255,255,1)',
+            fontSize: '0.9rem',
+            boxShadow: isFocused ? `0 0 15px ${color}80` : '0 4px 8px rgba(0,0,0,0.3)',
+            border: '2px solid white',
             cursor: isFocused ? 'grab' : 'pointer',
             userSelect: 'none',
             zIndex: 2,
-            position: 'relative',
-            transform: isFocused ? 'scale(1.15)' : 'none',
-            transition: 'transform 0.2s, box-shadow 0.2s'
+            position: 'relative'
           }}
         >
           {index + 1}
         </Box>
         
-        {/* Focused State: Target Lock */}
         {isFocused && TargetLock}
 
-        {/* Nearby State: Soft Pulse */}
-        {isNearby && !isFocused && (
-          <Box
-            sx={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              width: 48,
-              height: 48,
-              borderRadius: '50%',
-              border: `2px solid ${color}`,
-              transform: 'translate(-50%, -50%)',
-              animation: 'pulse 1.5s infinite',
-              pointerEvents: 'none',
-              '@keyframes pulse': {
-                '0%': { transform: 'translate(-50%, -50%) scale(0.8)', opacity: 0.8 },
-                '100%': { transform: 'translate(-50%, -50%) scale(1.6)', opacity: 0 }
-              }
-            }}
-          />
-        )}
-
-        {/* Focused controls Popover-style */}
         {isFocused && (
           <Paper
             elevation={12}
@@ -228,21 +208,17 @@ export default function DiagramPointBadge({
               ...(popoverAlign === 'center' ? { left: '50%', transform: 'translateX(-50%)' } : 
                   popoverAlign === 'left' ? { left: 0 } : { right: 0 }),
               p: '6px 10px',
-              borderRadius: 2.5,
+              borderRadius: 2,
               display: 'flex',
               alignItems: 'center',
-              gap: 1.5,
-              background: 'rgba(25, 25, 25, 0.98)',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
+              gap: 1,
+              background: 'rgba(30, 30, 30, 0.95)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
               whiteSpace: 'nowrap',
-              zIndex: 20,
-              boxShadow: '0 12px 32px rgba(0,0,0,0.6)'
+              zIndex: 20
             }}
-            onPointerDown={(e) => {
-               e.stopPropagation()
-               e.nativeEvent.stopImmediatePropagation()
-            }}
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
           >
             <InputBase
@@ -250,13 +226,13 @@ export default function DiagramPointBadge({
               size="small"
               value={point.text}
               onChange={(e) => onUpdateText(e.target.value)}
-              sx={{ color: '#fff', fontSize: '0.9rem', width: 140, fontWeight: 500 }}
-              placeholder="Label name..."
+              sx={{ color: '#fff', fontSize: '0.85rem', width: 120 }}
+              placeholder="Label..."
             />
-            <Stack direction="row" spacing={0.5}>
-              <Tooltip title="Follow on image">
-                <IconButton size="small" onClick={(e) => { e.stopPropagation(); onFocusInSidebar(); }}>
-                  <MyLocation sx={{ fontSize: 18, color: 'primary.main' }} />
+            <Stack direction="row" spacing={0.25}>
+              <Tooltip title="Scroll to in sidebar">
+                <IconButton size="small" onClick={(e) => { e.stopPropagation(); onScrollToSidebar(); }}>
+                  <FilterCenterFocus sx={{ fontSize: 18, color: 'primary.main' }} />
                 </IconButton>
               </Tooltip>
               <Tooltip title="Delete">
@@ -266,11 +242,10 @@ export default function DiagramPointBadge({
               </Tooltip>
             </Stack>
             
-            {/* Arrow */}
             <Box
               sx={{
                 position: 'absolute',
-                ...(popoverPos === 'top' ? { top: '100%', borderTop: '8px solid rgba(25,25,25,0.98)' } : { bottom: '100%', borderBottom: '8px solid rgba(25,25,25,0.98)' }),
+                ...(popoverPos === 'top' ? { top: '100%', borderTop: '8px solid rgba(30,30,30,0.95)' } : { bottom: '100%', borderBottom: '8px solid rgba(30,30,30,0.95)' }),
                 ...(popoverAlign === 'center' ? { left: '50%', transform: 'translateX(-50%)' } : 
                     popoverAlign === 'left' ? { left: 16 } : { right: 16 }),
                 width: 0,
