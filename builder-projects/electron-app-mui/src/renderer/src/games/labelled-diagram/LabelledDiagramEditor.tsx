@@ -154,7 +154,7 @@ export default function LabelledDiagramEditor({
   const hasIssues = !data.imagePath || unnamedPoints.length > 0
 
   return (
-    <Box sx={{ display: 'flex', height: '100%', overflow: 'hidden', bgcolor: '#0f1117' }}>
+    <Box sx={{ display: 'flex', height: '100%', overflow: 'hidden', bgcolor: '#0f1117', position: 'relative' }}>
       {/* ── Left Panel (Point List) - Fixed width when open ── */}
       {panelOpen && (
         <Box
@@ -168,36 +168,6 @@ export default function LabelledDiagramEditor({
             height: '100%'
           }}
         >
-          {/* Panel Header with Collapse Button */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              px: 2,
-              py: 1.5,
-              borderBottom: '1px solid rgba(255,255,255,0.06)'
-            }}
-          >
-            <Typography
-              variant="overline"
-              color="text.secondary"
-              sx={{ letterSpacing: 2, fontSize: '0.65rem' }}
-            >
-              Control Panel
-            </Typography>
-            <IconButton
-              onClick={() => setPanelOpen(false)}
-              size="small"
-              sx={{
-                color: 'text.secondary',
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' }
-              }}
-            >
-              <ChevronLeftIcon sx={{ fontSize: 20 }} />
-            </IconButton>
-          </Box>
-
           {/* Panel Content */}
           <Box sx={{ flex: 1, overflow: 'hidden' }}>
             <PointListPanel
@@ -208,6 +178,7 @@ export default function LabelledDiagramEditor({
               onDeletePoint={deletePoint}
               onNavigateToPoint={scrollToSelectedPoint}
               getPointColor={getPointColor}
+              onCollapse={() => setPanelOpen(false)}
             />
           </Box>
 
@@ -272,7 +243,7 @@ export default function LabelledDiagramEditor({
             position: 'absolute',
             left: 16,
             top: 16,
-            zIndex: 1000,
+            zIndex: 10,
             bgcolor: '#1a1d27',
             color: 'text.secondary',
             '&:hover': { bgcolor: '#232733', color: 'text.primary' },
@@ -322,6 +293,7 @@ export default function LabelledDiagramEditor({
               getPointColor={getPointColor}
               onAddPointAtCenter={addPoint}
               onShowWarning={setSnackbarMessage}
+              onSelectPoint={setSelectedPointId}
             />
           ) : (
             <Box

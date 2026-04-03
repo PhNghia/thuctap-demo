@@ -1,4 +1,5 @@
 import AddLocationIcon from '@mui/icons-material/AddLocation'
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft'
 import DeleteIcon from '@mui/icons-material/Delete'
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
 import { Box, IconButton, TextField, Tooltip, Typography } from '@mui/material'
@@ -13,6 +14,7 @@ interface PointListPanelProps {
   onDeletePoint: (id: string) => void
   onNavigateToPoint: (point: LabelledDiagramPoint) => void
   getPointColor: (index: number) => { bg: string; text: string }
+  onCollapse: () => void
 }
 
 interface PointEntryProps {
@@ -149,7 +151,8 @@ export function PointListPanel({
   onUpdatePoint,
   onDeletePoint,
   onNavigateToPoint,
-  getPointColor
+  getPointColor,
+  onCollapse
 }: PointListPanelProps): React.ReactElement {
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -181,7 +184,7 @@ export function PointListPanel({
         overflow: 'hidden'
       }}
     >
-      {/* Header with Add Button */}
+      {/* Header with Add Button and Collapse Button */}
       <Box
         sx={{
           p: 2,
@@ -199,18 +202,32 @@ export function PointListPanel({
         >
           Points ({points.length})
         </Typography>
-        <Tooltip title="Add point at center of view">
-          <IconButton
-            onClick={handleAddPointAtCenter}
-            size="small"
-            sx={{
-              color: 'text.secondary',
-              '&:hover': { color: 'primary.main', bgcolor: 'rgba(110,231,183,0.1)' }
-            }}
-          >
-            <AddLocationIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-        </Tooltip>
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <Tooltip title="Add point at center of view">
+            <IconButton
+              onClick={handleAddPointAtCenter}
+              size="small"
+              sx={{
+                color: 'text.secondary',
+                '&:hover': { color: 'primary.main', bgcolor: 'rgba(110,231,183,0.1)' }
+              }}
+            >
+              <AddLocationIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Collapse panel">
+            <IconButton
+              onClick={onCollapse}
+              size="small"
+              sx={{
+                color: 'text.secondary',
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' }
+              }}
+            >
+              <ChevronLeftIcon sx={{ fontSize: 20 }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
       {/* Point List */}

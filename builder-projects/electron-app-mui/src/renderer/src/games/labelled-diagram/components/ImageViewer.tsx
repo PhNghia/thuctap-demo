@@ -1,7 +1,8 @@
 import { Box } from '@mui/material'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import type { ReactZoomPanPinchRef } from 'react-zoom-pan-pinch'
-import { KeepScale, TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch'
+import { Context, TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch'
 import { LabelledDiagramPoint } from '../../../types'
 
 interface ImageViewerProps {
@@ -14,6 +15,7 @@ interface ImageViewerProps {
   getPointColor: (index: number) => { bg: string; text: string }
   onAddPointAtCenter: (xPercent: number, yPercent: number) => void
   onShowWarning: (message: string | null) => void
+  onSelectPoint: (id: string) => void
 }
 
 interface DraggablePointProps {
@@ -22,6 +24,50 @@ interface DraggablePointProps {
   isSelected: boolean
   getPointColor: (index: number) => { bg: string; text: string }
   onDragEnd: (id: string, xPercent: number, yPercent: number) => void
+  onSelect: (id: string) => void
+}
+
+/**
+ * Fixed version of KeepScale from react-zoom-pan-pinch.
+ * The original KeepScale only applies the counter-transform inside the onChange
+ * callback, so newly mounted elements don't get counter-scaled until the next
+ * zoom/pan event fires. This version applies the counter-scale immediately on
+ * mount using the current transformState.scale, then subscribes to updates.
+ */
+function FixedKeepScale({
+  children,
+  style,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>): React.ReactElement {
+  const localRef = useRef<HTMLDivElement>(null)
+  const instance = useContext(Context)
+
+  const applyCounterScale = useCallback(
+    (scale: number) => {
+      if (localRef.current) {
+        const inverse = 1 / scale
+        localRef.current.style.transform =
+          instance.handleTransformStyles(0, 0, inverse)
+      }
+    },
+    [instance]
+  )
+
+  // Apply counter-scale immediately on mount, then subscribe to future changes
+  useEffect(() => {
+    // Apply immediately
+    applyCounterScale(instance.transformState.scale)
+    // Subscribe to future transform changes
+    return instance.onChange((ctx) => {
+      applyCounterScale(ctx.instance.transformState.scale)
+    })
+  }, [instance, applyCounterScale])
+
+  return (
+    <div ref={localRef} style={style} {...props}>
+      {children}
+    </div>
+  )
 }
 
 function DraggablePoint({
@@ -29,10 +75,12 @@ function DraggablePoint({
   index,
   isSelected,
   getPointColor,
-  onDragEnd
+  onDragEnd,
+  onSelect
 }: DraggablePointProps): React.ReactElement {
   const pointRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
   const [showTooltip, setShowTooltip] = useState(false)
   const [dragPosition, setDragPosition] = useState({ x: point.xPercent, y: point.yPercent })
   const pointColor = getPointColor(index)
@@ -42,11 +90,14 @@ function DraggablePoint({
       e.stopPropagation()
       e.preventDefault()
 
+      // Select the point on click (but not during drag)
+      onSelect(point.id)
+
       setIsDragging(true)
       setShowTooltip(false)
       setDragPosition({ x: point.xPercent, y: point.yPercent })
     },
-    [point.xPercent, point.yPercent]
+    [point.id, point.xPercent, point.yPercent, onSelect]
   )
 
   useEffect(() => {
@@ -98,23 +149,81 @@ function DraggablePoint({
     <div
       ref={pointRef}
       onMouseDown={handleMouseDown}
-      onMouseEnter={() => !isDragging && setShowTooltip(true)}
-      onMouseLeave={() => setShowTooltip(false)}
+      onMouseEnter={() => {
+        if (!isDragging) {
+          setShowTooltip(true)
+          setIsHovered(true)
+        }
+      }}
+      onMouseLeave={() => {
+        setShowTooltip(false)
+        setIsHovered(false)
+      }}
       style={{
         position: 'absolute',
         left: `${displayX}%`,
         top: `${displayY}%`,
-        transform: 'translate(-50%, -50%)',
+        width: 0,
+        height: 0,
         cursor: isDragging ? 'grabbing' : 'grab',
         zIndex: isDragging || isSelected ? 1000 : 100
       }}
     >
-      {/* Point Badge with KeepScale */}
-      <KeepScale>
-        <Box
-          sx={{
-            width: 32,
-            height: 32,
+      {/* Pulsing Ring Animation for Selected Point */}
+      {isSelected && (
+        <FixedKeepScale
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            transform: 'translate(-50%, -50%)'
+          }}
+        >
+          <motion.div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              border: `2px solid ${pointColor.bg}`,
+              pointerEvents: 'none'
+            }}
+            animate={{
+              width: [32, 56],
+              height: [32, 56],
+              opacity: [0.8, 0],
+              marginTop: [-16, -28],
+              marginLeft: [-16, -28]
+            }}
+            transition={{
+              duration: 1.5,
+              repeat: Infinity,
+              ease: 'easeOut'
+            }}
+          />
+        </FixedKeepScale>
+      )}
+
+      {/* Point Badge */}
+      <FixedKeepScale
+        style={{
+          width: 32,
+          height: 32,
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          transform: 'translate(-50%, -50%)'
+        }}
+      >
+        <motion.div
+          animate={isHovered && !isDragging ? { scale: [1, 1.1, 1] } : { scale: 1 }}
+          transition={{
+            duration: 0.8,
+            repeat: isHovered && !isDragging ? Infinity : 0,
+            ease: 'easeInOut'
+          }}
+          style={{
+            width: '100%',
+            height: '100%',
             borderRadius: '50%',
             background: pointColor.bg,
             color: pointColor.text,
@@ -129,23 +238,25 @@ function DraggablePoint({
                 : '0 2px 6px rgba(0,0,0,0.4)',
             border: isSelected ? '2px solid #fff' : '2px solid rgba(255,255,255,0.3)',
             userSelect: 'none',
-            position: 'relative'
+            cursor: isDragging ? 'grabbing' : 'grab'
           }}
         >
           {index + 1}
-        </Box>
-      </KeepScale>
+        </motion.div>
+      </FixedKeepScale>
 
-      {/* Tooltip on hover - also wrapped in KeepScale */}
+      {/* Tooltip on hover */}
       {showTooltip && point.text && (
-        <KeepScale>
+        <FixedKeepScale
+          style={{
+            position: 'absolute',
+            top: 20,
+            left: 0,
+            transform: 'translateX(-50%)'
+          }}
+        >
           <Box
             sx={{
-              position: 'absolute',
-              top: '100%',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              mt: 1,
               px: 1.5,
               py: 0.75,
               bgcolor: 'rgba(0,0,0,0.85)',
@@ -162,7 +273,7 @@ function DraggablePoint({
           >
             {point.text}
           </Box>
-        </KeepScale>
+        </FixedKeepScale>
       )}
     </div>
   )
@@ -177,7 +288,8 @@ export function ImageViewer({
   onPointDrag,
   getPointColor,
   onAddPointAtCenter,
-  onShowWarning
+  onShowWarning,
+  onSelectPoint
 }: ImageViewerProps): React.ReactElement {
   const transformComponentRef = useRef<ReactZoomPanPinchRef | null>(null)
   const [imageUrl, setImageUrl] = useState<string>('')
@@ -356,6 +468,7 @@ export function ImageViewer({
                   isSelected={point.id === selectedPointId}
                   getPointColor={getPointColor}
                   onDragEnd={onPointDrag}
+                  onSelect={onSelectPoint}
                 />
               </div>
             ))}
