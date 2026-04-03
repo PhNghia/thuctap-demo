@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import GamePage from "./components/GamePage";
 import GameControls from "./components/GameControls";
 import GuideModal from "./components/GuideModal";
@@ -6,26 +6,28 @@ import { data, soundFiles } from "./constants";
 import HammerCursor from "./components/HammerCursor";
 import GameCompleteModal from "./components/GameCompleteModal";
 import type { Answer, AnswerPool, typeGame } from "./type";
+import audioManagerInstance from "./utils/AudioManager-v2";
 
 function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [showGuide, setShowGuide] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
-  const bgMusicRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    bgMusicRef.current = new Audio(soundFiles.bgMusic);
-    bgMusicRef.current.loop = true;
-    bgMusicRef.current.volume = 0.5;
+   audioManagerInstance.loadSounds({
+    bgMusic: soundFiles.bgMusic,
+    hit: soundFiles.hit,
+    dizzy: soundFiles.dizzy,
+    buzz: soundFiles.buzz
+   })
   }, []);
 
   useEffect(() => {
-    if (!bgMusicRef.current) return;
     if (isPlaying) {
-      bgMusicRef.current.play().catch(() => { });
+      audioManagerInstance.playBg('bgMusic', 0.3);
     } else {
-      bgMusicRef.current.pause();
+      audioManagerInstance.pauseBg();
     }
   }, [isPlaying]);
 

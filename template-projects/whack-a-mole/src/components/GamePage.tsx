@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Hole from "./Hole";
 import type { Question, RoundAnswer, AnswerPool } from "../type";
-import { playSound } from "../helper";
-import { soundFiles } from "../constants";
+import audioManagerInstance from "../utils/AudioManager-v2";
 
 const TOTAL = 10;
 
@@ -31,13 +30,6 @@ export default function GamePage({
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startTimeRef = useRef<number>(0);
   const roundTimeRef = useRef<number>(0);
-  const buzzRef = useRef<HTMLAudioElement|null>(null);
-  const dizzyRef = useRef<HTMLAudioElement|null>(null);
-
-  useEffect(() => {
-    buzzRef.current = new Audio(soundFiles.buzz);
-    dizzyRef.current = new Audio(soundFiles.dizzy);
-  }, []);
 
   // 👉 thêm cho 3 lượt
   const roundRef = useRef(0);
@@ -191,9 +183,9 @@ export default function GamePage({
 
     clearTimeoutRef()
     if (answer.correct) {
-      playSound(dizzyRef.current, 1);
+      audioManagerInstance.play('dizzy', 1);
       const interval = setInterval(() => {
-        playSound(dizzyRef.current, 1);
+        audioManagerInstance.play('dizzy', 1);
       }, 1000)
       setGoingDown(prev => [...prev, ...activeIndexes])
       setActiveIndexes([])
@@ -204,7 +196,7 @@ export default function GamePage({
         clearInterval(interval);
       }, 4000);
     } else {
-      playSound(buzzRef.current, 0.3);
+      audioManagerInstance.play('buzz', 0.3);
       const elapsed = Date.now() - startTimeRef.current;
       const remaining = Math.max(roundTimeRef.current - elapsed, 0);
       setGoingDown(prev => [...prev, index]);
