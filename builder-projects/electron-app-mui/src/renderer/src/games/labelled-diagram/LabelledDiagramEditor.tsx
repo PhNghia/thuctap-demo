@@ -164,9 +164,49 @@ export default function LabelledDiagramEditor({
   }, [])
 
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
+  
+  const addCenterPointView = useCallback(() => {
+    if (!wrapperRef.current || !imgRef.current) {
+      addPoint(50, 50)
+      return
+    }
+    const { scale, positionX, positionY } = transform
+    const wrapperWidth = wrapperRef.current.offsetWidth
+    const wrapperHeight = wrapperRef.current.offsetHeight
+    const imgWidth = imgRef.current.offsetWidth
+    const imgHeight = imgRef.current.offsetHeight
+
+    const imgLocalX = (wrapperWidth / 2 - positionX) / scale
+    const imgLocalY = (wrapperHeight / 2 - positionY) / scale
+
+    const xPercent = (imgLocalX / imgWidth) * 100
+    const yPercent = (imgLocalY / imgHeight) * 100
+
+    addPoint(Math.max(0, Math.min(100, xPercent)), Math.max(0, Math.min(100, yPercent)))
+  }, [addPoint, transform])
+
   useEntityCreateShortcut({
-    onTier1: () => addPoint(50, 50)
+    onTier1: addCenterPointView
   })
+
+  useEffect(() => {
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (!selectedPointId) return
+      
+      // Don't delete if we're typing in a TextField
+      if ((e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA') {
+        return
+      }
+
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        deletePoint(selectedPointId)
+        e.preventDefault()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedPointId, deletePoint])
 
   // ── Drag & Drop Logic ──────────────────────────────────────────────────────
 
@@ -462,10 +502,10 @@ export default function LabelledDiagramEditor({
               variant="outlined"
               fullWidth
               startIcon={<AddIcon />}
-              onClick={() => addPoint(50, 50)}
+              onClick={addCenterPointView}
               sx={{ borderColor: 'rgba(255,255,255,0.1)', color: 'text.secondary', mt: 1 }}
             >
-              Add Center Point
+              Add Point at View Center
             </Button>
           </Box>
         )}
@@ -538,6 +578,7 @@ export default function LabelledDiagramEditor({
                         border: '1px solid rgba(255,255,255,0.1)'
                       }}
                       onClick={(e) => e.stopPropagation()}
+                      onDoubleClick={(e) => e.stopPropagation()} // Stop points from being created here
                       onMouseDown={(e) => e.stopPropagation()}
                     >
                       <Tooltip title="Zoom In" placement="left">
