@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import type { CardProps } from "../types/components";
 import CardBack from "./CardBack";
 import { isEmoji } from "../utils";
+import { Textfit } from "react-textfit";
 
 export default function Card({ card, onClick, disabled, size }: CardProps) {
   const { isFlipped, isMatched, image, keyword } = card;
@@ -65,16 +66,21 @@ export default function Card({ card, onClick, disabled, size }: CardProps) {
                 )}
               </div>
 
-              {/* Centered keyword */}
-              <span
-                className="font-black text-white tracking-widest z-10 text-center"
-                style={{
-                  fontSize: size * 0.18,
-                  textShadow: "0 0 12px #a78bfa",
-                }}
-              >
-                {keyword}
-              </span>
+              {/* Centered keyword with Auto-Scaling */}
+              <div className="z-10 w-10/12 h-10/12">
+                <Textfit
+                  min={8} // Minimum font size
+                  max={size * 0.25} // Maximum font size (e.g., 25% of card size)
+                  mode="multi" // Use 'multi' for multiline support
+                  forceSingleModeWidth={false}
+                  className="font-black text-white tracking-widest text-center leading-tight w-full h-full flex items-center justify-center"
+                  style={{
+                    textShadow: "0 0 12px #a78bfa",
+                  }}
+                >
+                  {keyword}
+                </Textfit>
+              </div>
             </motion.div>
           ) : (
             // Flipped, not matched yet

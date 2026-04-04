@@ -1,16 +1,10 @@
 import type { GameConfig } from "../types/objects";
 
 const DEFAULT_DATA: GameConfig = {
-  minTotalPairs: 6,
+  minTotalPairs: 2,
   items: [
     { id: "cat", image: "🐱", keyword: "CAT", minPairs: 1 },
-    { id: "dog", image: "🐶", keyword: "DOG", minPairs: 1 },
-    { id: "apple", image: "🍎", keyword: "APPLE", minPairs: 1 },
-    { id: "sun", image: "☀️", keyword: "SUN", minPairs: 1 },
-    { id: "star", image: "⭐", keyword: "STAR", minPairs: 1 },
-    { id: "fish", image: "🐟", keyword: "FISH", minPairs: 1 },
-    { id: "flower", image: "🌸", keyword: "FLOWER", minPairs: 1 },
-    { id: "book", image: "📚", keyword: "BOOK", minPairs: 1 },
+    { id: "dog", image: "🐶", keyword: "DOGGOGOGOGOGOG BFKBKJDBSK FSNJFKJSB", minPairs: 1 },
   ],
 };
 
