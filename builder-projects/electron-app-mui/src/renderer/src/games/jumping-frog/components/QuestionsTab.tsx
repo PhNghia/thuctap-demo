@@ -13,7 +13,7 @@ export interface QuestionsTabProps {
   onAddQuestionFromDrop: (filePath: string) => void
   onUpdateQuestion: (id: string, patch: Partial<JumpingFrogQuestion>) => void
   onDeleteQuestion: (id: string) => void
-  onAddAnswer: (qid: string) => void
+  onAddAnswer: (qid: string, initialImage?: string) => void
   onUpdateAnswer: (qid: string, aid: string, patch: Partial<JumpingFrogAnswer>) => void
   onDeleteAnswer: (qid: string, aid: string) => void
 }

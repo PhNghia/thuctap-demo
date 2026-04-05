@@ -120,7 +120,7 @@ export default function JumpingFrogEditor({
   )
 
   const addAnswer = useCallback(
-    (qid: string) => {
+    (qid: string, initialImage?: string) => {
       onChange({
         ...data,
         questions: questions.map((q) => {
@@ -129,7 +129,7 @@ export default function JumpingFrogEditor({
           const newAnswer: JumpingFrogAnswer = {
             id: `${qid}-a-${ac}`,
             text: resolved.prefillNames ? `Option ${ac}` : '',
-            imagePath: null,
+            imagePath: initialImage ?? null,
             isCorrect: false
           }
           return { ...q, answers: [...q.answers, newAnswer] }
