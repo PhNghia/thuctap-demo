@@ -41,11 +41,11 @@ export function SettingsTab({ data, onChange }: SettingsTabProps): React.ReactEl
               helperText="The title displayed for this game."
             />
             <TextField
-              label="Class"
+              label="Grade"
               size="small"
               type="number"
-              value={data.class}
-              onChange={(e) => onChange({ ...data, class: e.target.value })}
+              value={data.grade}
+              onChange={(e) => onChange({ ...data, grade: e.target.value })}
               fullWidth
               placeholder="e.g., 1, 2, 3, 4, 5"
               helperText="The grade level this game is for (1-5)."

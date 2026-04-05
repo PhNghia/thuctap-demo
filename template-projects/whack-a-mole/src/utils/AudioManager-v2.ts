@@ -151,6 +151,7 @@ class BrowserAudioManager implements IAudioManager {
   private static instance: BrowserAudioManager;
   private sounds: Map<string, HTMLAudioElement> = new Map();
   private bgAudio: HTMLAudioElement | null = null;
+  private bgVolume: number = 0.5;
 
   private constructor() {}
 
@@ -190,6 +191,7 @@ class BrowserAudioManager implements IAudioManager {
       this.bgAudio.currentTime = 0;
     }
     this.bgAudio = audio;
+    this.bgVolume = volume;
     audio.loop = true;
     audio.volume = volume;
     await audio.play().catch(() => {});
@@ -199,7 +201,7 @@ class BrowserAudioManager implements IAudioManager {
   resumeBg() { if (this.bgAudio) this.bgAudio.play().catch(() => {}); }
   stopBg() { if (this.bgAudio) { this.bgAudio.pause(); this.bgAudio.currentTime = 0; } }
   muteBg() { if (this.bgAudio) this.bgAudio.volume = 0; }
-  unmuteBg() { if (this.bgAudio) this.bgAudio.volume = 0.5; }
+  unmuteBg() { if (this.bgAudio) this.bgAudio.volume = this.bgVolume; }
   async unlock() { /* no-op */ }
 }
 

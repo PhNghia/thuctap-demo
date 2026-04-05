@@ -20,7 +20,7 @@ function normalize(d: WhackAMoleAppData): WhackAMoleAppData {
   return {
     ...d,
     title: d.title ?? '',
-    class: d.class ?? '',
+    grade: d.grade ?? '',
     _questionCounter: d._questionCounter ?? 0,
     questions: d.questions ?? []
   }

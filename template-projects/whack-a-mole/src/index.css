@@ -12,29 +12,132 @@
   overflow: hidden;
 }
 
-body {
-  cursor: none;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
 .hide {
   display: none;
 }
 
-.page {
-  background: url("/assets/images/fundo.svg");
-  background-position: top;
+/* 🚪 start screen */
+.start-screen {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle, #222, #000);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.start-btn {
+  font-size: 2rem;
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+}
+
+.scene {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #000;
+}
+
+/* layer chung */
+.layer {
+  position: absolute;
+  inset: 0;
+  background-image: url("/assets/images/fundo.svg");
   background-size: cover;
   background-repeat: no-repeat;
+}
 
+.layer.left,
+.layer.right {
+  background-position: bottom center;
+  width: 50%;
+  height: 10%;
+  top: auto;
+  bottom: 20%;
+  filter: blur(3px);
+  opacity: 0.8;
+  z-index: 10;
+}
+
+.layer.left {
+  left: 0;
+}
+
+.layer.right {
+  right: 0;
+  left: auto;
+}
+
+.layer.bottom {
+  background-position: center;
+  height: 100%;
+  scale: 9;
+  z-index: 0;
+}
+
+.layer.top {
+  background-position: top center;
+  top: 0;
+  background-repeat: repeat;
+  clip-path: inset(0 0 12.7% 0);
+  scale: 1.01;
+  z-index: 0;
+}
+
+.scene.enter .layer.left,
+.scene.enter .layer.right {
+  bottom: 0;
+  filter: blur(0);
+  opacity: 1;
+  transition: all 3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.scene.enter .layer.left {
+  transform-origin: top right;
+  transform: translateX(-50%) translateY(100%);
+}
+
+.scene.enter .layer.right {
+  transform-origin: top left;
+  transform: translateX(50%) translateY(100%);
+}
+
+/* 🎮 app animation */
+.app {
+  cursor: none;
+  -webkit-user-select: none;
+  user-select: none;
+  position: relative;
+  z-index: 3;
+
+  transform-origin: top center;
+  transform: scale(0.8) translateY(-15%);
+  /* transform: scale(1) translateY(0); */
+  opacity: 0.8;
+  filter: blur(3px);
+
+  transition: all 3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 👉 khi start */
+.app.enter {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+  filter: blur(0);
+}
+
+.page {
   height: 100vh;
 
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-
+  justify-content: center;
+  gap: 12rem;
   position: relative;
 }
 
@@ -43,8 +146,8 @@ body {
   background-position: top;
   background-size: contain;
   background-repeat: no-repeat;
-  width: 100%;
-  height: 100px;
+  width: var(--moles-wid);
+  height: var(--moles-hei);
   z-index: 100;
 }
 
@@ -52,7 +155,7 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 9rem;
+  gap: 10rem;
 }
 
 /* hàng */
@@ -106,46 +209,49 @@ div.moles-hole.down.wrong {
 .mole-bubble {
   position: absolute;
   bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%) translateY(-10px);
+  translate: 0 -10px;
 
-  width: clamp(10rem, 15vw, 20rem);
+  /* width: clamp(10rem, 15vw, 20rem); */
 
   background: white;
-  padding: 0.8rem 1rem;
+  padding: 1rem 1.5rem;
   border-radius: 1rem;
 
   display: flex;
   flex-direction: column;
   align-items: center;
-
+  gap: 0.2rem;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 
   opacity: 0;
   pointer-events: none;
 }
 
-/* 👈 lệch trái */
 .row>div:nth-child(1) .mole-bubble {
-  transform: translateX(-83%) translateY(-10px);
+  right: 30%;
+}
+
+.row.row-3>div:nth-child(2) .mole-bubble {
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .row.row-4>div:nth-child(2) .mole-bubble {
-  transform: translateX(-70%) translateY(-10px);
-}
-
-
-/* 👉 lệch phải */
-.row.row-3>div:nth-child(3) .mole-bubble {
-  transform: translateX(-10%) translateY(-10px);
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .row.row-4>div:nth-child(3) .mole-bubble {
-  transform: translateX(-30%) translateY(-10px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.row.row-3>div:nth-child(3) .mole-bubble {
+  left: 30%;
 }
 
 .row.row-4>div:nth-child(4) .mole-bubble {
-  transform: translateX(-10%) translateY(-10px);
+  left: 30%;
 }
 
 /* 🐭 khi mole lên thì bubble hiện */
@@ -162,16 +268,18 @@ div.moles-hole.down.wrong {
 /* 📸 image */
 .mole-bubble img {
   width: clamp(3rem, 5vw, 6rem);
-  height: clamp(3rem, 5vw, 6rem);
+  /* height: clamp(3rem, 5vw, 6rem); */
   object-fit: contain;
 }
 
 /* 📝 text */
 .mole-bubble div {
-  font-size: clamp(1rem, 2vw, 2rem);
+  font-size: clamp(1rem, 2vw, 1.8rem);
   font-weight: bold;
   color: #333;
   text-align: center;
+  width: max-content;
+  max-width: 20rem;
 }
 
 /* 🔻 mũi tên bubble */
@@ -189,23 +297,15 @@ div.moles-hole.down.wrong {
 }
 
 .row>div:nth-child(1) .mole-bubble::after {
-  left: 80%;
+  right: 2rem;
 }
 
 .row.row-3>div:nth-child(3) .mole-bubble::after {
-  left: 8%;
-}
-
-.row.row-4>div:nth-child(2) .mole-bubble::after {
-  left: 65%;
-}
-
-.row.row-4>div:nth-child(3) .mole-bubble::after {
-  left: 28%;
+  left: 2rem;
 }
 
 .row.row-4>div:nth-child(4) .mole-bubble::after {
-  left: 8%;
+  left: 2rem;
 }
 
 /* button {
@@ -397,8 +497,8 @@ button:hover {
   position: fixed;
   top: 2rem;
   right: 0;
-  flex-direction: column;
-  transform: translateX(-50%);
+  flex-direction: row;
+  transform: translateX(-3rem);
 
   display: flex;
   gap: 1.5rem;
@@ -408,10 +508,10 @@ button:hover {
 
 /* 🔘 base button */
 .game-btn {
-  width: 60px;
-  height: 60px;
+  width: clamp(4rem, 7vw, 6rem);
+  height: clamp(4rem, 7vw, 6rem);
 
-  border-radius: 16px;
+  border-radius: 50%;
   border: none;
 
   display: flex;
@@ -444,7 +544,7 @@ button:hover {
 }
 
 /* ✨ chấm highlight góc */
-.game-btn::after {
+/* .game-btn::after {
   content: "";
   position: absolute;
   bottom: 6px;
@@ -455,7 +555,7 @@ button:hover {
   border-radius: 50%;
 
   background: rgba(255, 255, 255, 0.9);
-}
+} */
 
 /* hover */
 .game-btn:hover {
@@ -473,8 +573,8 @@ button:hover {
 
 /* 🎯 icon */
 .game-btn svg {
-  width: 24px;
-  height: 24px;
+  width: clamp(2rem, 4vw, 3rem);
+  height: clamp(2rem, 4vw, 3rem);
   color: white;
   stroke-width: 3;
 }
@@ -490,13 +590,17 @@ button:hover {
 }
 
 /* 🟠 RESTART */
-.btn-restart {
+.btn-mute {
   background: linear-gradient(145deg, #ffb74d, #f57c00);
 
   box-shadow:
     inset 0 4px 8px rgba(255, 255, 255, 0.4),
     inset 0 -6px 10px rgba(0, 0, 0, 0.2),
     0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn-mute.active {
+  background: linear-gradient(145deg, #f0d6b0, #f39a41);
 }
 
 /* 🔵 GUIDE */

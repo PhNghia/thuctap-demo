@@ -14,6 +14,7 @@
 import type {
   AnyAppData,
   BalloonLetterPickerAppData,
+  FindTheTreasureAppData,
   GroupSortAppData,
   LabelledDiagramAppData,
   PairMatchingAppData,
@@ -180,7 +181,7 @@ export const GAME_DATA_TRANSFORMS: Record<string, DataTransform> = {
 
     return omitInternalKeys({
       title: data.title,
-      class: data.class,
+      class: data.grade,
       questions
     })
   },
@@ -203,6 +204,28 @@ export const GAME_DATA_TRANSFORMS: Record<string, DataTransform> = {
         yPercent
       }))
     })
+  },
+
+  // Find the Treasure
+  'find-the-treasure': (appData) => {
+    // Template expects a flat Stage[] array:
+    // { id, location, story, prompt, options: string[], correctAnswer: number, explanation, points }
+    const data = appData as FindTheTreasureAppData
+    const stages = (data.stages ?? []).map((s) => {
+      const correctIndex = s.answers.findIndex((a) => a.isCorrect)
+      const options = s.answers.map((a) => a.text)
+      return {
+        id: s.id,
+        location: s.stageName,
+        story: s.stageText,
+        prompt: s.question,
+        options,
+        correctAnswer: correctIndex >= 0 ? correctIndex : 0,
+        explanation: s.stageDescription,
+        points: s.stageValue
+      }
+    })
+    return omitInternalKeys(stages)
   }
 }
 

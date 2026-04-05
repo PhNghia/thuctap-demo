@@ -6,6 +6,14 @@ export type Question = {
   answerImage?: string;
 };
 
+type ClassId = "1" | "2" | "3" | "4" | "5";
+
+export type GameData = {
+  title: string;
+  class: ClassId,
+  questions: Question[];
+}
+
 export type Answer = {
   groupId: number;
   text?: string;
@@ -27,6 +35,6 @@ export type RoundAnswer = Answer & {
 
 declare global {
   interface Window {
-    APP_DATA: Question[]; // 👈 tạm thời dùng any
+    APP_DATA: GameData; // 👈 tạm thời dùng any
   }
 }

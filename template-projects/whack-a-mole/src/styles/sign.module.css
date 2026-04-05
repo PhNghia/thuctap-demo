@@ -1,0 +1,97 @@
+.sign {
+  position: relative;
+  width: 700px;
+  max-width: 90vw;
+  margin: 0 auto;
+}
+
+/* 🪵 cọc */
+.post {
+  position: absolute;
+  width: 20px;
+  height: 80px;
+  background: #8b5a2b;
+  border: 2px solid #5c3a1a;
+  bottom: -10px; /* cho nó lòi xuống giống SVG */
+  z-index: 0;
+}
+
+.left {
+  left: 80px;
+}
+
+.right {
+  right: 80px;
+}
+
+/* 🪵 bảng */
+.board {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 700 / 150;
+
+  background: #d2a679;
+  border: 4px solid #8b5a2b;
+  border-radius: 12px;
+
+  box-sizing: border-box;
+  z-index: 1;
+}
+
+/* 📌 nail */
+.nail {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #555;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #999, #333);
+}
+
+/* vị trí nail */
+.tl {
+  left: 20px;
+  top: 20%;
+}
+
+.tr {
+  right: 20px;
+  top: 20%;
+}
+
+.bl {
+  left: 20px;
+  bottom: 20%;
+}
+
+.br {
+  right: 20px;
+  bottom: 20%;
+}
+
+/* 📦 content */
+.content {
+  position: absolute;
+  inset: 0;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  padding: 10px;
+  text-align: center;
+}
+
+.text {
+  font-size: clamp(1.5rem, 4vw, 3rem);
+  font-weight: bold;
+  color: #fff;
+
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.question-img {
+  width: clamp(40px, 10vw, 80px);
+  margin-top: 8px;
+}

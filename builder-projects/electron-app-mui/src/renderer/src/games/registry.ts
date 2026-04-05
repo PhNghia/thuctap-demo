@@ -13,6 +13,7 @@ import type { ComponentType } from 'react'
 import type { AnyAppData } from '../types'
 
 import BalloonLetterPickerEditor from './balloon-letter-picker/BalloonLetterPickerEditor'
+import FindTheTreasureEditor from './find-the-treasure/FindTheTreasureEditor'
 import GroupSortEditor from './group-sort/GroupSortEditor'
 import LabelledDiagramEditor from './labelled-diagram/LabelledDiagramEditor'
 import PairMatchingEditor from './pair-matching/PairMatchingEditor'
@@ -80,7 +81,7 @@ export const GAME_REGISTRY: Record<string, GameRegistryEntry> = {
     Editor: WhackAMoleEditor as GameRegistryEntry['Editor'],
     createInitialData: () => ({
       title: '',
-      class: '',
+      grade: '',
       questions: [],
       _questionCounter: 0
     })
@@ -92,6 +93,15 @@ export const GAME_REGISTRY: Record<string, GameRegistryEntry> = {
       imagePath: null,
       points: [],
       _pointCounter: 0
+    })
+  },
+
+  'find-the-treasure': {
+    Editor: FindTheTreasureEditor as GameRegistryEntry['Editor'],
+    createInitialData: () => ({
+      stages: [],
+      _stageCounter: 0,
+      _answerCounter: 0
     })
   }
 }

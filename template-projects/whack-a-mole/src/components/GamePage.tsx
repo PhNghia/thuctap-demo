@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import Hole from "./Hole";
 import type { Question, RoundAnswer, AnswerPool } from "../type";
 import audioManagerInstance from "../utils/AudioManager-v2";
+import SignBoard from "./SignBoard";
 
 const TOTAL = 10;
 
@@ -51,6 +52,9 @@ export default function GamePage({
       autoHideMoles(indexes);
     }, delay ?? roundTimeRef.current);
   };
+
+  useEffect(() => {
+  }, [])
 
   useEffect(() => {
     if (!isPlaying) return
@@ -143,7 +147,7 @@ export default function GamePage({
     setActiveIndexes(next);
     setHitState({});
 
-    const ROUND_TIME = Math.random() * 1000 + 2500;
+    const ROUND_TIME = 3500;
 
     startTimeRef.current = Date.now();
     roundTimeRef.current = ROUND_TIME;
@@ -199,23 +203,41 @@ export default function GamePage({
       audioManagerInstance.play('buzz', 0.3);
       const elapsed = Date.now() - startTimeRef.current;
       const remaining = Math.max(roundTimeRef.current - elapsed, 0);
+      const newActive = activeIndexes.filter(i => i !== index);
       setGoingDown(prev => [...prev, index]);
-      setActiveIndexes(prev => prev.filter(i => i !== index));
-      createTimeoutRef(activeIndexes.filter(i => i !== index), remaining);
+      setActiveIndexes(newActive);
+      createTimeoutRef(newActive, remaining);
     }
   };
 
   return (
     <div className="page">
-      <div className="sign-box">
-        {/* <img src="/assets/wood.svg" alt="" />
-         */}
+      {/* <div className="sign-box">
         <div className="sign-box-wood"></div>
         <div className="container">
           <div className="sign-text">{currentIndex + 1 + ". " + question.question}</div>
           {question.questionImage && <img className="question-img" src={question.questionImage} alt="" />}
         </div>
-      </div>
+      </div> */}
+
+      {/* <div className={styles.sign}>
+        <div className={styles.board}>
+          <div className={styles.content}>
+            <div className={styles.text}>
+              {currentIndex + 1 + ". " + question.question}
+            </div>
+
+            {question.questionImage && (
+              <img
+                className={styles["question-img"]}
+                src={question.questionImage}
+              />
+            )}
+          </div>
+        </div>
+      </div> */}
+
+      <SignBoard question={question} currentIndex={currentIndex} />
 
       <main>
         <div className="row row-3">

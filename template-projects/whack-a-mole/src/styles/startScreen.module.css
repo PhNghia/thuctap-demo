@@ -1,0 +1,87 @@
+.start-container {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(180deg, #a0e9ff, #ffffff);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    z-index: 999;
+}
+
+.start-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    text-align: center;
+    animation: fadeIn 0.8s ease;
+}
+
+.game-title {
+    font-size: clamp(3rem, 5vw, 5rem);
+    font-weight: bold;
+    color: #ff7a00;
+}
+
+.intro-text {
+    font-size: clamp(1.5rem, 3vw, 3rem);
+}
+
+/* 🐥 Mascot animation */
+.mascot {
+    width: clamp(150px, 20vw, 250px);
+    animation: bounce 1.5s infinite ease-in-out;
+}
+
+.topic {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* bounce */
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-20px);
+    }
+}
+
+/* fade */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* button */
+.start-btn {
+    padding: 1.5rem 2.5rem;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    background: #ffcc00;
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.start-btn:hover {
+    transform: scale(1.1);
+    background: #ffb300;
+}

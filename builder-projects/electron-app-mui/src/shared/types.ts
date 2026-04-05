@@ -117,7 +117,7 @@ export interface WhackAMoleQuestion {
 }
 export interface WhackAMoleAppData {
   title: string
-  class: string
+  grade: string
   questions: WhackAMoleQuestion[]
   _questionCounter: number
 }
@@ -135,6 +135,27 @@ export interface LabelledDiagramAppData {
   _pointCounter: number
 }
 
+// Find the Treasure
+export interface FindTheTreasureAnswer {
+  id: string
+  text: string
+  isCorrect: boolean
+}
+export interface FindTheTreasureStage {
+  id: string
+  stageName: string
+  stageText: string
+  question: string
+  answers: FindTheTreasureAnswer[]
+  stageDescription: string
+  stageValue: number
+}
+export interface FindTheTreasureAppData {
+  stages: FindTheTreasureStage[]
+  _stageCounter: number
+  _answerCounter: number
+}
+
 // Union type for any game's AppData
 export type AnyAppData =
   | GroupSortAppData
@@ -144,6 +165,7 @@ export type AnyAppData =
   | WordSearchAppData
   | WhackAMoleAppData
   | LabelledDiagramAppData
+  | FindTheTreasureAppData
 
 // Map of game type to its AppData type (for generic lookups)
 export interface GameAppDataMap {
@@ -154,6 +176,7 @@ export interface GameAppDataMap {
   'word-search': WordSearchAppData
   'whack-a-mole': WhackAMoleAppData
   'labelled-diagram': LabelledDiagramAppData
+  'find-the-treasure': FindTheTreasureAppData
 }
 
 // ── Other Shared Types ────────────────────────────────────────────────────────
