@@ -15,6 +15,7 @@ import type { AnyAppData } from '../types'
 import BalloonLetterPickerEditor from './balloon-letter-picker/BalloonLetterPickerEditor'
 import FindTheTreasureEditor from './find-the-treasure/FindTheTreasureEditor'
 import GroupSortEditor from './group-sort/GroupSortEditor'
+import JumpingFrogEditor from './jumping-frog/JumpingFrogEditor'
 import LabelledDiagramEditor from './labelled-diagram/LabelledDiagramEditor'
 import PairMatchingEditor from './pair-matching/PairMatchingEditor'
 import QuizEditor from './plane-quiz/QuizEditor'
@@ -101,6 +102,15 @@ export const GAME_REGISTRY: Record<string, GameRegistryEntry> = {
     createInitialData: () => ({
       stages: [],
       _stageCounter: 0,
+      _answerCounter: 0
+    })
+  },
+
+  'jumping-frog': {
+    Editor: JumpingFrogEditor as GameRegistryEntry['Editor'],
+    createInitialData: () => ({
+      questions: [],
+      _questionCounter: 0,
       _answerCounter: 0
     })
   }

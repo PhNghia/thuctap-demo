@@ -406,8 +406,9 @@ createHandler('open-project-file', async (_e, filePath?: string) => {
 })
 
 createHandler('save-project', async (_e, projectData: object, projectPath: string, history) => {
-  fs.writeFileSync(projectPath, JSON.stringify(projectData, null, 2), 'utf-8')
-  purgeUnusedAssets(path.dirname(projectPath), projectData, history)
+  const normalized = normalizeAssetPathsInProject(projectData) as object
+  fs.writeFileSync(projectPath, JSON.stringify(normalized, null, 2), 'utf-8')
+  purgeUnusedAssets(path.dirname(projectPath), normalized, history)
   return true
 })
 

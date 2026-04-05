@@ -33,7 +33,7 @@ export default function BalloonLetterPickerEditor({
         id: `word-${c}`,
         word: resolved.prefillNames ? `WORD${getExcelName(c)}` : '',
         imagePath: initialImagePath ?? '',
-        hint: ''
+        hint: resolved.prefillNames ? `Hint ${c}` : ''
       }
       onChange({ ...data, _wordCounter: c, words: [...words, w] })
     },
@@ -45,7 +45,7 @@ export default function BalloonLetterPickerEditor({
       const c = data._wordCounter + 1
       const id = `word-${c}`
       const relativePath = await window.electronAPI.importImage(filePath, projectDir, id)
-      const imagePath = `./${relativePath.replace(/\\/g, '/')}`
+      const imagePath = `${relativePath.replace(/\\/g, '/')}`
       const w: BalloonWord = {
         id,
         word: resolved.prefillNames ? `WORD${getExcelName(c)}` : '',

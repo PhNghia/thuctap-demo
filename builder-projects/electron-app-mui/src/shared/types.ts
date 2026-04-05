@@ -156,6 +156,24 @@ export interface FindTheTreasureAppData {
   _answerCounter: number
 }
 
+// Jumping Frog
+export interface JumpingFrogAnswer {
+  id: string
+  text: string
+  imagePath: string | null
+  isCorrect: boolean
+}
+export interface JumpingFrogQuestion {
+  id: string
+  question: string
+  answers: JumpingFrogAnswer[]
+}
+export interface JumpingFrogAppData {
+  questions: JumpingFrogQuestion[]
+  _questionCounter: number
+  _answerCounter: number
+}
+
 // Union type for any game's AppData
 export type AnyAppData =
   | GroupSortAppData
@@ -166,6 +184,7 @@ export type AnyAppData =
   | WhackAMoleAppData
   | LabelledDiagramAppData
   | FindTheTreasureAppData
+  | JumpingFrogAppData
 
 // Map of game type to its AppData type (for generic lookups)
 export interface GameAppDataMap {
@@ -177,6 +196,7 @@ export interface GameAppDataMap {
   'whack-a-mole': WhackAMoleAppData
   'labelled-diagram': LabelledDiagramAppData
   'find-the-treasure': FindTheTreasureAppData
+  'jumping-frog': JumpingFrogAppData
 }
 
 // ── Other Shared Types ────────────────────────────────────────────────────────

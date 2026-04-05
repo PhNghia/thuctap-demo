@@ -16,6 +16,7 @@ import type {
   BalloonLetterPickerAppData,
   FindTheTreasureAppData,
   GroupSortAppData,
+  JumpingFrogAppData,
   LabelledDiagramAppData,
   PairMatchingAppData,
   QuizAppData,
@@ -226,6 +227,27 @@ export const GAME_DATA_TRANSFORMS: Record<string, DataTransform> = {
       }
     })
     return omitInternalKeys(stages)
+  },
+
+  // Jumping Frog
+  'jumping-frog': (appData) => {
+    // Template expects a flat Question[] array:
+    // { question: string, options: Array<{ label?: string, image?: string, icon?: string }>, correctIndex: number }
+    const data = appData as JumpingFrogAppData
+    const questions = (data.questions ?? []).map((q) => {
+      const correctIndex = q.answers.findIndex((a) => a.isCorrect)
+      const options = q.answers.map((a) => ({
+        label: a.text,
+        image: a.imagePath ?? undefined,
+        icon: null // legacy field
+      }))
+      return {
+        question: q.question,
+        options,
+        correctIndex: correctIndex >= 0 ? correctIndex : 0
+      }
+    })
+    return omitInternalKeys(questions)
   }
 }
 

@@ -1,0 +1,6 @@
+{
+  "name": "Jumping Frog",
+  "description": "Students choose the right answer for each question. If they choose incorrectly, the frog must fall and dive in water, else the frog will jump and land in the lilypad.",
+  "gameType": "jumping-frog",
+  "version": "0.0.1"
+}
