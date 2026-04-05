@@ -1,8 +1,13 @@
 import { Box, Typography } from '@mui/material'
 import { useEntityCreateShortcut } from '@renderer/hooks/useEntityCreateShortcut'
 import { useSettings } from '@renderer/hooks/useSettings'
-import React, { useCallback, useRef, useState } from 'react'
-import { FindTheTreasureAnswer, FindTheTreasureAppData, FindTheTreasureStage } from '../../types'
+import React, { useCallback, useState } from 'react'
+import {
+  FindTheTreasureAnswer,
+  FindTheTreasureAppData,
+  FindTheTreasureStage
+} from '../../types'
+import type { Tab } from './components'
 import { StageSidebar, StagesTab } from './components'
 
 interface Props {
@@ -10,8 +15,6 @@ interface Props {
   projectDir: string
   onChange: (data: FindTheTreasureAppData) => void
 }
-
-type Tab = 'stages' | 'settings'
 
 function normalize(d: FindTheTreasureAppData): FindTheTreasureAppData {
   return {
@@ -32,11 +35,10 @@ export default function FindTheTreasureEditor({
   const [activeStageId, setActiveStageId] = useState<string | null>(null)
   const { resolved } = useSettings()
   const { stages } = data
-  const stageRefs = useRef<Map<string, HTMLDivElement>>(new Map())
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
   const addStage = useCallback(
-    (_initialImage?: string) => {
+    () => {
       const sc = data._stageCounter + 1
       const sid = `stage-${sc}`
       const ac = data._answerCounter
@@ -44,23 +46,23 @@ export default function FindTheTreasureEditor({
       const answers: FindTheTreasureAnswer[] = [
         {
           id: `${sid}-a-${ac + 1}`,
-          text: resolved.prefillNames ? `Answer ${ac + 1}` : '',
+          text: resolved.prefillNames ? `Option ${ac + 1}` : '',
           isCorrect: true
         },
         {
           id: `${sid}-a-${ac + 2}`,
-          text: resolved.prefillNames ? `Answer ${ac + 2}` : '',
+          text: resolved.prefillNames ? `Option ${ac + 2}` : '',
           isCorrect: false
         }
       ]
 
       const stage: FindTheTreasureStage = {
         id: sid,
-        stageName: resolved.prefillNames ? `Stage Name ${sc}` : '',
-        stageText: resolved.prefillNames ? `Stage Text ${sc}` : '',
-        question: resolved.prefillNames ? `Question ${sc}` : '',
+        stageName: resolved.prefillNames ? `Location ${sc}` : '',
+        stageText: resolved.prefillNames ? `Story ${sc}` : '',
+        question: resolved.prefillNames ? `Prompt ${sc}` : '',
         answers,
-        stageDescription: resolved.prefillNames ? `Stage Description ${sc}` : '',
+        stageDescription: resolved.prefillNames ? `Explanation ${sc}` : '',
         stageValue: 1
       }
 
@@ -71,14 +73,8 @@ export default function FindTheTreasureEditor({
         stages: [...stages, stage]
       })
 
-      // Select and scroll to the new stage
+      // Auto-select the new stage
       setActiveStageId(sid)
-      setTimeout(() => {
-        const el = stageRefs.current.get(sid)
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        }
-      }, 100)
     },
     [data, stages, resolved.prefillNames, onChange]
   )
@@ -103,10 +99,18 @@ export default function FindTheTreasureEditor({
 
   const deleteStage = useCallback(
     (id: string) => {
+      const idx = stages.findIndex((s) => s.id === id)
       const newStages = stages.filter((s) => s.id !== id)
       onChange({ ...data, stages: newStages })
+
+      // Select adjacent stage after deletion
       if (activeStageId === id) {
-        setActiveStageId(null)
+        if (newStages.length === 0) {
+          setActiveStageId(null)
+        } else {
+          const newIdx = Math.min(idx, newStages.length - 1)
+          setActiveStageId(newStages[Math.max(0, newIdx)].id)
+        }
       }
     },
     [data, stages, activeStageId, onChange]
@@ -121,7 +125,7 @@ export default function FindTheTreasureEditor({
           const ac = data._answerCounter + 1
           const newAnswer: FindTheTreasureAnswer = {
             id: `${stageId}-a-${ac}`,
-            text: resolved.prefillNames ? `Answer ${ac}` : '',
+            text: resolved.prefillNames ? `Option ${ac}` : '',
             isCorrect: false
           }
           return { ...s, answers: [...s.answers, newAnswer] }
@@ -140,7 +144,7 @@ export default function FindTheTreasureEditor({
           if (s.id !== stageId) return s
           let answers = s.answers.map((a) => (a.id === answerId ? { ...a, ...patch } : a))
 
-          // If marking as correct and not in multiple-correct mode, uncheck others
+          // Marking as correct → uncheck others (single-correct mode)
           if (patch.isCorrect) {
             answers = answers.map((a) =>
               a.id === answerId ? { ...a, isCorrect: true } : { ...a, isCorrect: false }
@@ -166,13 +170,9 @@ export default function FindTheTreasureEditor({
     [data, stages, onChange]
   )
 
-  // ── Stage selection & scroll ──────────────────────────────────────────────
+  // ── Stage selection ───────────────────────────────────────────────────────
   const handleStageSelect = useCallback((stageId: string) => {
     setActiveStageId(stageId)
-    const el = stageRefs.current.get(stageId)
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
   }, [])
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
@@ -189,6 +189,7 @@ export default function FindTheTreasureEditor({
         stages={stages}
         activeStageId={activeStageId}
         onStageSelect={handleStageSelect}
+        onStageDelete={deleteStage}
       />
 
       {/* ── Main ── */}
@@ -196,6 +197,7 @@ export default function FindTheTreasureEditor({
         {tab === 'stages' && (
           <StagesTab
             stages={stages}
+            selectedStageId={activeStageId}
             onAddStage={addStage}
             onAddStageFromDrop={addStageFromDrop}
             onUpdateStage={updateStage}
@@ -203,6 +205,7 @@ export default function FindTheTreasureEditor({
             onAddAnswer={addAnswer}
             onUpdateAnswer={updateAnswer}
             onDeleteAnswer={deleteAnswer}
+            onSelectStage={handleStageSelect}
           />
         )}
         {tab === 'settings' && (
@@ -216,25 +219,6 @@ export default function FindTheTreasureEditor({
           </Box>
         )}
       </Box>
-
-      {/* Invisible refs for scroll-to-stage */}
-      {stages.map((s) => (
-        <div
-          key={s.id}
-          ref={(el) => {
-            if (el) stageRefs.current.set(s.id, el)
-            else stageRefs.current.delete(s.id)
-          }}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: 1,
-            height: 1,
-            pointerEvents: 'none'
-          }}
-        />
-      ))}
     </Box>
   )
 }

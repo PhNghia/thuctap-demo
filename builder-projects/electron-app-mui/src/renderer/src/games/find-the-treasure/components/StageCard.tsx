@@ -3,19 +3,19 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import DeleteIcon from '@mui/icons-material/Delete'
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked'
 import {
-    Box,
-    Button,
-    IconButton,
-    TextField,
-    Tooltip,
-    Typography
+  Box,
+  Button,
+  IconButton,
+  TextField,
+  Tooltip,
+  Typography
 } from '@mui/material'
 import React from 'react'
 import { FindTheTreasureAnswer, FindTheTreasureStage } from '../../../types'
 
 export interface StageCardProps {
   stage: FindTheTreasureStage
-  index: number
+  stageIndex: number
   autoFocus: boolean
   onUpdateStage: (id: string, patch: Partial<FindTheTreasureStage>) => void
   onDeleteStage: (id: string) => void
@@ -24,9 +24,13 @@ export interface StageCardProps {
   onDeleteAnswer: (stageId: string, answerId: string) => void
 }
 
+/**
+ * Single stage editor card — uses template terminology:
+ * Location, Story, Prompt, Options (answers), Explanation, Points
+ */
 export function StageCard({
   stage,
-  index,
+  stageIndex,
   autoFocus,
   onUpdateStage,
   onDeleteStage,
@@ -61,7 +65,7 @@ export function StageCard({
           variant="subtitle2"
           sx={{ color: 'text.secondary', fontWeight: 600, letterSpacing: 0.5 }}
         >
-          Stage {index + 1}
+          {stage.stageName || `Stage ${stageIndex + 1}`}
         </Typography>
         <Tooltip title="Delete stage">
           <IconButton
@@ -76,9 +80,9 @@ export function StageCard({
 
       {/* ── Card Body ── */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 2 }}>
-        {/* Stage Name */}
+        {/* Location */}
         <TextField
-          label="Stage Name"
+          label="Location"
           size="small"
           fullWidth
           value={stage.stageName}
@@ -89,39 +93,39 @@ export function StageCard({
           autoFocus={autoFocus}
         />
 
-        {/* Stage Text (story) */}
+        {/* Story */}
         <TextField
-          label="Stage Text"
+          label="Story"
           size="small"
           fullWidth
           multiline
           minRows={2}
           value={stage.stageText}
           onChange={(e) => onUpdateStage(stage.id, { stageText: e.target.value })}
-          placeholder="A short backstory paragraph for this stage..."
+          placeholder="A short backstory paragraph for this location..."
           error={!stage.stageText.trim()}
           helperText={!stage.stageText.trim() ? 'Required' : ''}
         />
 
-        {/* Question */}
+        {/* Prompt */}
         <TextField
-          label="Question"
+          label="Prompt"
           size="small"
           fullWidth
           value={stage.question}
           onChange={(e) => onUpdateStage(stage.id, { question: e.target.value })}
-          placeholder="The quiz question for this stage..."
+          placeholder="The question for this stage..."
           error={!stage.question.trim()}
           helperText={!stage.question.trim() ? 'Required' : ''}
         />
 
-        {/* Answers */}
+        {/* Options (Answers) */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           <Typography
             variant="overline"
             sx={{ fontSize: '0.6rem', letterSpacing: 2, color: 'text.disabled' }}
           >
-            Answers — click the icon to mark as correct
+            Options — click the icon to mark as correct
           </Typography>
 
           {stage.answers.map((answer, aIdx) => {
@@ -148,7 +152,7 @@ export function StageCard({
                   fullWidth
                   value={answer.text}
                   onChange={(e) => onUpdateAnswer(stage.id, answer.id, { text: e.target.value })}
-                  placeholder={`Answer ${String.fromCharCode(64 + aIdx + 1)}…`}
+                  placeholder={`Option ${String.fromCharCode(64 + aIdx + 1)}…`}
                   error={!answer.text.trim()}
                   sx={{
                     '& .MuiOutlinedInput-root': {
@@ -158,7 +162,7 @@ export function StageCard({
                   }}
                 />
 
-                <Tooltip title="Remove answer">
+                <Tooltip title="Remove option">
                   <span>
                     <IconButton
                       size="small"
@@ -185,7 +189,7 @@ export function StageCard({
             onClick={() => onAddAnswer(stage.id)}
             sx={{ alignSelf: 'flex-start', mt: 0.5, opacity: 0.7 }}
           >
-            Add answer
+            Add option
           </Button>
 
           {!hasCorrectAnswer && stage.answers.length > 0 && (
@@ -195,9 +199,9 @@ export function StageCard({
           )}
         </Box>
 
-        {/* Stage Description (explanation) */}
+        {/* Explanation */}
         <TextField
-          label="Stage Description"
+          label="Explanation"
           size="small"
           fullWidth
           multiline
@@ -209,9 +213,9 @@ export function StageCard({
           helperText={!stage.stageDescription.trim() ? 'Required' : ''}
         />
 
-        {/* Stage Value (points) */}
+        {/* Points */}
         <TextField
-          label="Stage Value"
+          label="Points"
           size="small"
           type="number"
           value={stage.stageValue}

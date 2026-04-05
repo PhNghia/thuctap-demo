@@ -5,4 +5,5 @@ export { StagesTab } from './StagesTab'
 export type { StagesTabProps } from './StagesTab'
 
 export { StageSidebar } from './StageSidebar'
-export type { StageSidebarProps } from './StageSidebar'
+export type { StageSidebarProps, Tab } from './StageSidebar'
+

@@ -8,54 +8,71 @@ import { StageCard } from './StageCard'
 
 export interface StagesTabProps {
   stages: FindTheTreasureStage[]
-  onAddStage: (initialImage?: string) => void
+  selectedStageId: string | null
+  onAddStage: () => void
   onAddStageFromDrop: (filePath: string) => void
   onUpdateStage: (id: string, patch: Partial<FindTheTreasureStage>) => void
   onDeleteStage: (id: string) => void
   onAddAnswer: (stageId: string) => void
   onUpdateAnswer: (stageId: string, answerId: string, patch: Partial<FindTheTreasureAnswer>) => void
   onDeleteAnswer: (stageId: string, answerId: string) => void
+  onSelectStage: (id: string) => void
 }
 
 export function StagesTab({
   stages,
+  selectedStageId,
   onAddStage,
   onAddStageFromDrop,
   onUpdateStage,
   onDeleteStage,
   onAddAnswer,
   onUpdateAnswer,
-  onDeleteAnswer
+  onDeleteAnswer,
+  onSelectStage
 }: StagesTabProps): React.ReactElement {
   // Validation
   const noName = stages.filter((s) => !s.stageName.trim())
-  const noText = stages.filter((s) => !s.stageText.trim())
-  const noQuestion = stages.filter((s) => !s.question.trim())
+  const noStory = stages.filter((s) => !s.stageText.trim())
+  const noPrompt = stages.filter((s) => !s.question.trim())
   const noCorrect = stages.filter((s) => !s.answers.some((a) => a.isCorrect))
-  const emptyAnswers = stages.filter((s) => s.answers.some((a) => !a.text.trim()))
-  const tooFewAns = stages.filter((s) => s.answers.length < 2)
-  const noDescription = stages.filter((s) => !s.stageDescription.trim())
+  const emptyOptions = stages.filter((s) => s.answers.some((a) => !a.text.trim()))
+  const tooFewOptions = stages.filter((s) => s.answers.length < 2)
+  const noExplanation = stages.filter((s) => !s.stageDescription.trim())
   const hasIssues =
     noName.length > 0 ||
-    noText.length > 0 ||
-    noQuestion.length > 0 ||
+    noStory.length > 0 ||
+    noPrompt.length > 0 ||
     noCorrect.length > 0 ||
-    emptyAnswers.length > 0 ||
-    tooFewAns.length > 0 ||
-    noDescription.length > 0
+    emptyOptions.length > 0 ||
+    tooFewOptions.length > 0 ||
+    noExplanation.length > 0
+
+  // Determine which stage to show
+  const selectedStage = selectedStageId
+    ? stages.find((s) => s.id === selectedStageId) ?? null
+    : null
+  const selectedStageIndex = selectedStage ? stages.indexOf(selectedStage) : -1
+
+  // Auto-select first stage if none selected and stages exist
+  React.useEffect(() => {
+    if (!selectedStageId && stages.length > 0) {
+      onSelectStage(stages[0].id)
+    }
+  }, [selectedStageId, stages.length, stages, onSelectStage])
 
   return (
     <Box>
       <Collapse in={hasIssues}>
         <Alert severity="warning" sx={{ mb: 2, fontSize: '0.8rem' }}>
           {[
-            noName.length > 0 && `${noName.length} stage(s) missing a name`,
-            noText.length > 0 && `${noText.length} stage(s) missing stage text`,
-            noQuestion.length > 0 && `${noQuestion.length} stage(s) missing a question`,
+            noName.length > 0 && `${noName.length} stage(s) missing a location`,
+            noStory.length > 0 && `${noStory.length} stage(s) missing a story`,
+            noPrompt.length > 0 && `${noPrompt.length} stage(s) missing a prompt`,
             noCorrect.length > 0 && `${noCorrect.length} stage(s) have no correct answer marked`,
-            emptyAnswers.length > 0 && `${emptyAnswers.length} stage(s) have blank answer text`,
-            tooFewAns.length > 0 && `${tooFewAns.length} stage(s) need at least 2 answers`,
-            noDescription.length > 0 && `${noDescription.length} stage(s) missing a description`
+            emptyOptions.length > 0 && `${emptyOptions.length} stage(s) have blank option text`,
+            tooFewOptions.length > 0 && `${tooFewOptions.length} stage(s) need at least 2 options`,
+            noExplanation.length > 0 && `${noExplanation.length} stage(s) missing an explanation`
           ]
             .filter(Boolean)
             .join(' · ')}
@@ -64,7 +81,7 @@ export function StagesTab({
 
       <StickyHeader
         title="Stages"
-        description="Each stage has a location, story, question with answers, and explanation."
+        description="Each stage has a location, story, prompt with options, and explanation."
         actions={
           <FileDropTarget onFileDrop={onAddStageFromDrop}>
             <Button
@@ -85,23 +102,20 @@ export function StagesTab({
           title="No stages yet"
           description='Click "Add Stage" to create your first island stage.'
         />
-      ) : (
+      ) : selectedStage ? (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          {stages.map((s, idx) => (
-            <StageCard
-              key={s.id}
-              stage={s}
-              index={idx}
-              autoFocus={idx === stages.length - 1}
-              onUpdateStage={onUpdateStage}
-              onDeleteStage={onDeleteStage}
-              onAddAnswer={onAddAnswer}
-              onUpdateAnswer={onUpdateAnswer}
-              onDeleteAnswer={onDeleteAnswer}
-            />
-          ))}
+          <StageCard
+            stage={selectedStage}
+            stageIndex={selectedStageIndex}
+            autoFocus={false}
+            onUpdateStage={onUpdateStage}
+            onDeleteStage={onDeleteStage}
+            onAddAnswer={onAddAnswer}
+            onUpdateAnswer={onUpdateAnswer}
+            onDeleteAnswer={onDeleteAnswer}
+          />
         </Box>
-      )}
+      ) : null}
     </Box>
   )
 }
