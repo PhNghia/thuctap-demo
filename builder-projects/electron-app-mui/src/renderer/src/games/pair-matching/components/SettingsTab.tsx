@@ -10,6 +10,8 @@ export interface SettingsTabProps {
   onChange: (data: PairMatchingAppData) => void
 }
 
+const IS_CARD_CUSTOM_SKIN_IMPLEMENTED = false
+
 /**
  * Settings tab component for PairMatchingEditor.
  * Handles global game configuration.
@@ -47,42 +49,44 @@ export function SettingsTab({ data, projectDir, onChange }: SettingsTabProps): R
         </Paper>
 
         {/* Card Appearance */}
-        <Paper
-          elevation={0}
-          sx={{ p: 3, background: '#1a1d27', border: '1px solid rgba(255,255,255,0.06)' }}
-        >
-          <Typography variant="subtitle2" sx={{ mb: 2 }}>
-            Card Appearance
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 3 }}>
-            <Box sx={{ flex: 1 }}>
-              <TextField
-                label="Card Back Color"
-                size="small"
-                value={data.cardBackColor ?? ''}
-                onChange={(e) => onChange({ ...data, cardBackColor: e.target.value })}
-                fullWidth
-                placeholder="e.g. #FF0000 or red"
-                helperText="Color used for the back of cards if no image is provided."
-                sx={{ mb: 2 }}
-              />
+        {IS_CARD_CUSTOM_SKIN_IMPLEMENTED ? (
+          <Paper
+            elevation={0}
+            sx={{ p: 3, background: '#1a1d27', border: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <Typography variant="subtitle2" sx={{ mb: 2 }}>
+              Card Appearance
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 3 }}>
+              <Box sx={{ flex: 1 }}>
+                <TextField
+                  label="Card Back Color"
+                  size="small"
+                  value={data.cardBackColor ?? ''}
+                  onChange={(e) => onChange({ ...data, cardBackColor: e.target.value })}
+                  fullWidth
+                  placeholder="e.g. #FF0000 or red"
+                  helperText="Color used for the back of cards if no image is provided."
+                  sx={{ mb: 2 }}
+                />
+              </Box>
+              <Divider orientation="vertical" flexItem />
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="body2" sx={{ mb: 1, color: 'text.secondary' }}>
+                  Card Back Image
+                </Typography>
+                <ImagePicker
+                  projectDir={projectDir}
+                  desiredNamePrefix="global-card-back"
+                  value={data.cardBackImage ?? null}
+                  onChange={(p) => onChange({ ...data, cardBackImage: p })}
+                  label="Select Background"
+                  size={100}
+                />
+              </Box>
             </Box>
-            <Divider orientation="vertical" flexItem />
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="body2" sx={{ mb: 1, color: 'text.secondary' }}>
-                Card Back Image
-              </Typography>
-              <ImagePicker
-                projectDir={projectDir}
-                desiredNamePrefix="global-card-back"
-                value={data.cardBackImage ?? null}
-                onChange={(p) => onChange({ ...data, cardBackImage: p })}
-                label="Select Background"
-                size={100}
-              />
-            </Box>
-          </Box>
-        </Paper>
+          </Paper>
+        ) : null}
       </Box>
     </Box>
   )
