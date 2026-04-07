@@ -13,7 +13,7 @@ import {
 } from './components'
 import { useDiagramInteraction } from './hooks/useDiagramInteraction'
 import { useLabelledDiagramPoints } from './hooks/useLabelledDiagramPoints'
-import { gridBackground } from './styles'
+import { DIAGRAM_PADDING, gridBackground } from './styles'
 
 interface Props {
   appData: LabelledDiagramAppData
@@ -171,13 +171,13 @@ export default function LabelledDiagramEditor({
             >
               <TransformWrapper
                 ref={transformRef}
-                initialScale={1}
-                minScale={0.75}
+                initialScale={0.7}
+                minScale={0.5}
                 maxScale={10}
                 centerOnInit
                 limitToBounds={true}
                 panning={{ velocityDisabled: true }}
-                centerZoomedOut={true}
+                // centerZoomedOut={true}
                 disabled={!!draggingPointId}
                 doubleClick={{ disabled: true }}
                 onInit={(ref) => setTransform({ ...ref.state })}
@@ -189,17 +189,19 @@ export default function LabelledDiagramEditor({
                   <>
                     <DiagramControls {...controls} />
                     <TransformComponent wrapperStyle={{ width: '100%', height: '100%' }}>
-                      <img
-                        ref={imgRef}
-                        src={imageUrl}
-                        alt="Diagram"
-                        draggable={false}
-                        style={{ pointerEvents: 'auto', userSelect: 'none', maxWidth: 'none' }}
-                        onLoad={(e) => {
-                          const img = e.currentTarget
-                          setImgSize({ width: img.offsetWidth, height: img.offsetHeight })
-                        }}
-                      />
+                      <Box sx={{ p: `${DIAGRAM_PADDING}px` }}>
+                        <img
+                          ref={imgRef}
+                          src={imageUrl}
+                          alt="Diagram"
+                          draggable={false}
+                          style={{ pointerEvents: 'auto', userSelect: 'none', maxWidth: 'none' }}
+                          onLoad={(e) => {
+                            const img = e.currentTarget
+                            setImgSize({ width: img.offsetWidth, height: img.offsetHeight })
+                          }}
+                        />
+                      </Box>
                     </TransformComponent>
                   </>
                 )}

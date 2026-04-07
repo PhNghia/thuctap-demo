@@ -1,6 +1,7 @@
 import { LabelledDiagramAppData, LabelledDiagramPoint } from '@renderer/types'
 import { MouseEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { ReactZoomPanPinchRef } from 'react-zoom-pan-pinch'
+import { DIAGRAM_PADDING } from '../styles'
 
 interface UseDiagramInteractionProps {
   appData: LabelledDiagramAppData
@@ -62,12 +63,18 @@ export function useDiagramInteraction({
       const { scale, positionX, positionY } = transform
       const { width: imgWidth, height: imgHeight } = imgSize
 
-      const imgLocalX = (mouseX - positionX) / scale
-      const imgLocalY = (mouseY - positionY) / scale
+      // Local distance from top-left of the padded container
+      const containerLocalX = (mouseX - positionX) / scale
+      const containerLocalY = (mouseY - positionY) / scale
+
+      // Translate to image surface by subtracting padding
+      const imgLocalX = containerLocalX - DIAGRAM_PADDING
+      const imgLocalY = containerLocalY - DIAGRAM_PADDING
 
       let xPercent = (imgLocalX / imgWidth) * 100
       let yPercent = (imgLocalY / imgHeight) * 100
 
+      // Clamp - ensures points added in padding area snap to edges
       xPercent = Math.max(0, Math.min(100, xPercent))
       yPercent = Math.max(0, Math.min(100, yPercent))
 
@@ -84,14 +91,19 @@ export function useDiagramInteraction({
       const imgWidth = imgRef.current.offsetWidth
       const imgHeight = imgRef.current.offsetHeight
 
-      const targetX = (point.xPercent / 100) * imgWidth
-      const targetY = (point.yPercent / 100) * imgHeight
+      // Pixels relative to image surface
+      const targetXInImage = (point.xPercent / 100) * imgWidth
+      const targetYInImage = (point.yPercent / 100) * imgHeight
+
+      // Pixels relative to padded container
+      const targetXInContainer = targetXInImage + DIAGRAM_PADDING
+      const targetYInContainer = targetYInImage + DIAGRAM_PADDING
 
       const wrapperWidth = wrapperRef.current?.offsetWidth ?? 0
       const wrapperHeight = wrapperRef.current?.offsetHeight ?? 0
 
-      const posX = wrapperWidth / 2 - targetX * scale
-      const posY = wrapperHeight / 2 - targetY * scale
+      const posX = wrapperWidth / 2 - targetXInContainer * scale
+      const posY = wrapperHeight / 2 - targetYInContainer * scale
 
       transformRef.current.setTransform(posX, posY, scale)
       setSelectedPointId(point.id)
@@ -111,8 +123,14 @@ export function useDiagramInteraction({
 
       let foundHoveredId: string | null = null
       localPoints.forEach((p) => {
-        const badgeX = (p.xPercent / 100) * imgWidth * scale + positionX
-        const badgeY = (p.yPercent / 100) * imgHeight * scale + positionY
+        // Point is (xPercent, yPercent) in image context. Translate to container context first.
+        const badgeXInContainer = (p.xPercent / 100) * imgWidth + DIAGRAM_PADDING
+        const badgeYInContainer = (p.yPercent / 100) * imgHeight + DIAGRAM_PADDING
+
+        // Then translate to absolute viewport context using transform
+        const badgeX = badgeXInContainer * scale + positionX
+        const badgeY = badgeYInContainer * scale + positionY
+
         const dist = Math.sqrt((mouseX - badgeX) ** 2 + (mouseY - badgeY) ** 2)
         if (dist < 25) foundHoveredId = p.id
       })
@@ -184,8 +202,14 @@ export function useDiagramInteraction({
 
         let foundPointId: string | null = null
         localPoints.forEach((p) => {
-          const badgeX = (p.xPercent / 100) * imgWidth * scale + positionX
-          const badgeY = (p.yPercent / 100) * imgHeight * scale + positionY
+          // Translate image coord to container coord
+          const badgeXInContainer = (p.xPercent / 100) * imgWidth + DIAGRAM_PADDING
+          const badgeYInContainer = (p.yPercent / 100) * imgHeight + DIAGRAM_PADDING
+
+          // Translate to absolute viewport coord
+          const badgeX = badgeXInContainer * scale + positionX
+          const badgeY = badgeYInContainer * scale + positionY
+
           const dist = Math.sqrt((clickX - badgeX) ** 2 + (clickY - badgeY) ** 2)
           if (dist < 25) {
             foundPointId = p.id

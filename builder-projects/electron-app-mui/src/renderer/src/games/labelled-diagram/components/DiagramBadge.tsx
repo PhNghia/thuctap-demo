@@ -1,7 +1,7 @@
 import { Box } from '@mui/material'
 import React from 'react'
 import { LabelledDiagramPoint } from '../../../types'
-import { getBadgeColor, hoverBadgePulse, SelectedBadgeOutline } from '../styles'
+import { getBadgeColor, hoverBadgePulse, SelectedBadgeOutline, DIAGRAM_PADDING } from '../styles'
 
 interface DiagramBadgeProps {
   point: LabelledDiagramPoint
@@ -30,8 +30,8 @@ export const DiagramBadge: React.FC<DiagramBadgeProps> = ({
   positionX,
   positionY
 }) => {
-  const left = (point.xPercent / 100) * imgWidth * scale + positionX
-  const top = (point.yPercent / 100) * imgHeight * scale + positionY
+  const left = ((point.xPercent / 100) * imgWidth + DIAGRAM_PADDING) * scale + positionX
+  const top = ((point.yPercent / 100) * imgHeight + DIAGRAM_PADDING) * scale + positionY
 
   return (
     <Box key={point.id}>
