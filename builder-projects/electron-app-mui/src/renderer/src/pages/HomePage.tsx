@@ -1,6 +1,6 @@
 import SportsEsportsIcon from '@mui/icons-material/SportsEsports'
 import { Box, Divider, Typography } from '@mui/material'
-import { JSX, useCallback, useEffect, useState } from 'react'
+import { JSX, useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   HasProjectDialog,
@@ -8,26 +8,12 @@ import {
   RecentProjectsSection,
   TemplateGrid
 } from '../components/home/HomeComponents'
+import { useSettingsStore } from '../stores/settingsStore'
 import { useTemplateManager } from '../hooks/useTemplates'
-import { GameTemplate, GlobalSettings, RecentProject } from '../types'
+import { GameTemplate, RecentProject } from '../types'
 
-async function readRecentProjects(): Promise<RecentProject[]> {
-  const s = await window.electronAPI.settingsReadGlobal()
-  return (
-    ((s as unknown as Record<string, unknown>).recentProjects as RecentProject[] | undefined) ?? []
-  )
-}
-
-async function writeRecentProjects(list: RecentProject[]): Promise<void> {
-  const s = await window.electronAPI.settingsReadGlobal()
-  await window.electronAPI.settingsWriteGlobal({ ...s, recentProjects: list } as GlobalSettings)
-}
-
-async function addRecentProject(entry: RecentProject): Promise<void> {
-  const existing = await readRecentProjects()
-  const filtered = existing.filter((r) => r.filePath !== entry.filePath)
-  await writeRecentProjects([entry, ...filtered].slice(0, 10))
-}
+// Constant empty array to prevent infinite re-renders in Zustand selector
+const EMPTY_RECENT_PROJECTS: RecentProject[] = []
 
 type FolderDialogState =
   | { type: 'non-empty'; folder: string; template: GameTemplate }
@@ -39,13 +25,15 @@ export default function HomePage(): JSX.Element {
   const navigate = useNavigate()
   const manager = useTemplateManager()
   const [folderDlg, setFolderDlg] = useState<FolderDialogState>(null)
-  const [recent, setRecent] = useState<RecentProject[]>([])
   const [showRecent, setShowRecent] = useState(false)
 
-  // Load recent projects on mount
-  useEffect(() => {
-    readRecentProjects().then(setRecent)
-  }, [])
+  // Use Zustand store for recent projects
+  // Note: Using ?? with constant to avoid creating new arrays on each call (prevents infinite loops)
+  const recentProjects = useSettingsStore(
+    (s) => (s.globalSettings.recentProjects ?? EMPTY_RECENT_PROJECTS) as RecentProject[]
+  )
+  const addRecentProject = useSettingsStore((s) => s.addRecentProject)
+  const removeRecentProject = useSettingsStore((s) => s.removeRecentProject)
 
   const openProject = useCallback(
     async (filePath: string, data: ReturnType<typeof JSON.parse>) => {
@@ -61,7 +49,7 @@ export default function HomePage(): JSX.Element {
       })
       navigate(`/project/${data.templateId}`, { state: { filePath, projectDir, data } })
     },
-    [manager, navigate]
+    [manager, navigate, addRecentProject]
   )
 
   const handleOpenExisting = async (): Promise<void> => {
@@ -71,22 +59,13 @@ export default function HomePage(): JSX.Element {
   }
 
   const handleNewProject = async (template: GameTemplate): Promise<void> => {
-    const folder = await window.electronAPI.chooseProjectFolder()
-    if (!folder) return
-    const status = await window.electronAPI.checkFolderStatus(folder)
-    if (status === 'has-project') {
-      setFolderDlg({ type: 'has-project', folder, template })
-      return
-    }
-    if (status === 'non-empty') {
-      setFolderDlg({ type: 'non-empty', folder, template })
-      return
-    }
-    await createNewProject(folder, template)
+    // No longer asks for folder - creates temp project immediately
+    await createNewProject(template)
   }
 
-  const createNewProject = async (folder: string, template: GameTemplate): Promise<void> => {
-    const projectPath = `${folder}/project.mgproj`
+  const createNewProject = async (template: GameTemplate): Promise<void> => {
+    const tempFolder = await window.electronAPI.createTempFolder()
+    const projectPath = `${tempFolder}/project.mgproj`
     const now = new Date().toISOString()
     const initialAppData = manager.createInitialData(template.id)
     const newProject = {
@@ -99,7 +78,16 @@ export default function HomePage(): JSX.Element {
       appData: initialAppData
     }
     await window.electronAPI.saveProject(newProject, projectPath)
-    await openProject(projectPath, newProject)
+
+    // Navigate to project with isTemporary flag
+    navigate(`/project/${template.id}`, {
+      state: {
+        filePath: projectPath,
+        projectDir: tempFolder,
+        data: newProject,
+        isTemporary: true
+      }
+    })
   }
 
   const handleOpenFromFolder = async (folder: string): Promise<void> => {
@@ -110,9 +98,7 @@ export default function HomePage(): JSX.Element {
   }
 
   const removeRecent = async (filePath: string): Promise<void> => {
-    const updated = recent.filter((r) => r.filePath !== filePath)
-    setRecent(updated)
-    await writeRecentProjects(updated)
+    await removeRecentProject(filePath)
   }
 
   const openRecent = async (entry: RecentProject): Promise<void> => {
@@ -122,6 +108,10 @@ export default function HomePage(): JSX.Element {
       return
     }
     await openProject(result.filePath, result.data)
+  }
+
+  const handleOpenInExplorer = (filePath: string): void => {
+    window.electronAPI.openPathInExplorer(filePath)
   }
 
   return (
@@ -160,12 +150,13 @@ export default function HomePage(): JSX.Element {
 
       {/* ── Recent projects (collapsible) ── */}
       <RecentProjectsSection
-        recent={recent}
+        recent={recentProjects}
         showRecent={showRecent}
         onToggleShow={() => setShowRecent((v) => !v)}
         onBrowse={handleOpenExisting}
         onOpenRecent={openRecent}
         onRemoveRecent={removeRecent}
+        onOpenInExplorer={handleOpenInExplorer}
       />
 
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.06)' }} />

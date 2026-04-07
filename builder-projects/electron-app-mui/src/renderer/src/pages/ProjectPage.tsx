@@ -1,6 +1,7 @@
 import { Box, Button, Typography } from '@mui/material'
 import { useProjectHistory } from '@renderer/context/useProjectHistory'
 import { useSettings } from '@renderer/hooks/useSettings'
+import { useSettingsStore } from '@renderer/stores/settingsStore'
 import { JSX, useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
@@ -10,6 +11,7 @@ import {
   RenameDialog,
   SaveAsConfirmDialog
 } from '../components/project/ProjectDialogs'
+import { MoreActionsMenu } from '../components/project/MoreActionsMenu'
 import { ProjectToolbar } from '../components/project/ProjectToolbar'
 import SettingsPanel from '../components/SettingsPanel'
 import { ProjectHistoryProvider } from '../context/ProjectHistoryProvider'
@@ -37,6 +39,7 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
   const navigate = useNavigate()
   const { resolved, projectSettings, setProjectSettings } = useSettings()
   const manager = useTemplateManager()
+  const addRecentProject = useSettingsStore((s) => s.addRecentProject)
 
   // Split project state: meta (file location, name) is separate from app data (game content)
   const [meta, setMeta] = useState<ProjectMeta | null>(
@@ -48,7 +51,8 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
           name: locationState.data.name,
           createdAt: locationState.data.createdAt,
           updatedAt: locationState.data.updatedAt,
-          settings: locationState.data.settings
+          settings: locationState.data.settings,
+          isTemporary: (locationState as { isTemporary?: boolean }).isTemporary ?? false
         }
       : null
   )
@@ -84,15 +88,19 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
     return () => setProjectSettings(null)
   }, [locationState?.data?.settings, setProjectSettings])
 
+  const [prevProjectSettings, setPrevProjectSettings] = useState(projectSettings)
+
   // Sync project settings from context to meta (for saving)
   // Only update meta when projectSettings change, not vice versa
-  useEffect(() => {
+  if (prevProjectSettings !== projectSettings) {
+    setPrevProjectSettings(projectSettings)
     setMeta((prev) => {
       if (!prev) return prev
       if (prev.settings === projectSettings) return prev
+      setIsDirty(true)
       return { ...prev, settings: projectSettings }
     })
-  }, [projectSettings])
+  }
 
   // Update window title whenever meta or appData changes
   useEffect(() => {
@@ -148,9 +156,30 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
           newFolder: folder,
           history
         })
+
+        // Update meta and clear isTemporary flag
         setMeta((prev) =>
-          prev ? { ...prev, filePath: newLoc.filePath, projectDir: newLoc.projectDir } : prev
+          prev
+            ? {
+                ...prev,
+                filePath: newLoc.filePath,
+                projectDir: newLoc.projectDir,
+                isTemporary: false
+              }
+            : prev
         )
+
+        // Add new project to recent projects list (treat like a new save)
+        const template = manager.getTemplate(meta.templateId)
+        await addRecentProject({
+          filePath: newLoc.filePath,
+          projectDir: newLoc.projectDir,
+          templateId: meta.templateId,
+          templateName: template?.name ?? meta.templateId,
+          projectName: meta.name,
+          lastOpened: new Date().toISOString()
+        })
+
         setIsDirty(false)
         setSaveAsConfirmFolder(null)
         showSnack(`Saved to: ${newLoc.projectDir}`)
@@ -158,7 +187,7 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
         showSnack(`Save As failed: ${e}`, 'error')
       }
     },
-    [meta, appData, getHistory, showSnack]
+    [meta, appData, getHistory, showSnack, addRecentProject, manager]
   )
 
   // ── Auto-save: interval mode ───────────────────────────────────────────────
@@ -224,16 +253,6 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
     [setPresent, resolved.autoSave.mode, doSave]
   )
 
-  const handleSave = useCallback(async (): Promise<void> => {
-    if (!meta) return
-    try {
-      await doSave(meta, appData)
-      showSnack('Project saved!')
-    } catch (e) {
-      showSnack(`Save failed: ${e}`, 'error')
-    }
-  }, [meta, appData, doSave, showSnack])
-
   // ── Save As ───────────────────────────────────────────────────────────────
   const handleSaveAs = useCallback(async (): Promise<void> => {
     if (!meta) return
@@ -251,6 +270,23 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
     }
     await performSaveAs(result.folder)
   }, [meta, appData, showSnack, performSaveAs])
+
+  const handleSave = useCallback(async (): Promise<void> => {
+    if (!meta) return
+
+    // If temporary, trigger save-as instead
+    if (meta.isTemporary) {
+      await handleSaveAs()
+      return
+    }
+
+    try {
+      await doSave(meta, appData)
+      showSnack('Project saved!')
+    } catch (e) {
+      showSnack(`Save failed: ${e}`, 'error')
+    }
+  }, [meta, appData, doSave, showSnack, handleSaveAs])
 
   // ── Export / Preview ───────────────────────────────────────────────────────
   const handleExport = async (mode: 'folder' | 'zip'): Promise<void> => {
@@ -289,6 +325,7 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
     if (!meta || !renameValue.trim()) return
     const updated = { ...meta, name: renameValue.trim() }
     setMeta(updated)
+    setIsDirty(true)
     setRenameOpen(false)
     try {
       await doSave(updated, appData)
@@ -343,13 +380,18 @@ function ProjectPageInner({ templateId, locationState }: ProjectPageInnerProps):
           setRenameValue(meta.name)
           setRenameOpen(true)
         }}
-        onSettings={() => setSettingsOpen(true)}
         onSave={handleSave}
         onSaveAs={handleSaveAs}
         onPreview={handlePreview}
         onExport={(e) => setExportAnchor(e.currentTarget)}
         onUndo={handleUndo}
         onRedo={handleRedo}
+        renderMoreActions={() => (
+          <MoreActionsMenu
+            pathToOpen={meta.projectDir}
+            onOpenSettings={() => setSettingsOpen(true)}
+          />
+        )}
       />
 
       {/* ── Editor ── */}

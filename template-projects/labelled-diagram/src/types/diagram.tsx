@@ -7,6 +7,8 @@ export interface Label {
 export interface Zone {
   id: string;
   correctLabelId: string;
+
+  // % position
   x: number;
   y: number;
 }
@@ -14,7 +16,9 @@ export interface Zone {
 export interface DiagramData {
   id: string;
   name: string;
-  imagePath: string;
+
+  imagePath?: string;
+
   labels: Label[];
   zones: Zone[];
 }

@@ -35,6 +35,7 @@ export interface RecentProjectsSectionProps {
   onBrowse: () => void
   onOpenRecent: (entry: RecentProject) => void
   onRemoveRecent: (filePath: string) => void
+  onOpenInExplorer: (filePath: string) => void
 }
 
 export function RecentProjectsSection({
@@ -43,7 +44,8 @@ export function RecentProjectsSection({
   onToggleShow,
   onBrowse,
   onOpenRecent,
-  onRemoveRecent
+  onRemoveRecent,
+  onOpenInExplorer
 }: RecentProjectsSectionProps): React.ReactElement {
   return (
     <Box>
@@ -98,7 +100,13 @@ export function RecentProjectsSection({
             No recently opened projects yet.
           </Typography>
         ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))',
+              gap: 1.5
+            }}
+          >
             {recent.map((r) => (
               <RecentProjectItem
                 key={r.filePath}
@@ -107,6 +115,10 @@ export function RecentProjectsSection({
                 onRemove={(e) => {
                   e.stopPropagation()
                   onRemoveRecent(r.filePath)
+                }}
+                onOpenInExplorer={(e) => {
+                  e.stopPropagation()
+                  onOpenInExplorer(r.filePath)
                 }}
               />
             ))}
@@ -122,12 +134,14 @@ interface RecentProjectItemProps {
   entry: RecentProject
   onClick: () => void
   onRemove: (e: React.MouseEvent) => void
+  onOpenInExplorer: (e: React.MouseEvent) => void
 }
 
 function RecentProjectItem({
   entry,
   onClick,
-  onRemove
+  onRemove,
+  onOpenInExplorer
 }: RecentProjectItemProps): React.ReactElement {
   return (
     <Box
@@ -183,15 +197,26 @@ function RecentProjectItem({
           </Typography>
         </Tooltip>
       </Box>
-      <Tooltip title="Remove from list">
-        <IconButton
-          size="small"
-          onClick={onRemove}
-          sx={{ opacity: 0.4, '&:hover': { opacity: 1, color: 'error.main' } }}
-        >
-          <DeleteOutlineIcon sx={{ fontSize: 16 }} />
-        </IconButton>
-      </Tooltip>
+      <Box sx={{ display: 'flex', gap: 0.5 }}>
+        <Tooltip title="Open in Explorer">
+          <IconButton
+            size="small"
+            onClick={onOpenInExplorer}
+            sx={{ opacity: 0.4, '&:hover': { opacity: 1 } }}
+          >
+            <FolderOpenIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Remove from list">
+          <IconButton
+            size="small"
+            onClick={onRemove}
+            sx={{ opacity: 0.4, '&:hover': { opacity: 1, color: 'error.main' } }}
+          >
+            <DeleteOutlineIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+        </Tooltip>
+      </Box>
     </Box>
   )
 }

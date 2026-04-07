@@ -7,9 +7,10 @@ type Props = {
     classId: MascotKey;
     title: string;
     onStart: () => void;
+    onOpenGuide: () => void;
 };
 
-export default function StartScreen({ classId, title, onStart }: Props) {
+export default function StartScreen({ classId, title, onStart, onOpenGuide }: Props) {
     const mascot = guideMascots[classId];
 
     return (
@@ -35,10 +36,14 @@ export default function StartScreen({ classId, title, onStart }: Props) {
                 </h6>
 
 
-
-                <button className={styles['start-btn']} style={{ backgroundColor: mascot.theme.button }} onClick={onStart}>
-                    START GAME
-                </button>
+                <div className={styles['button-group']}>
+                    <button className={styles['start-btn']} style={{ backgroundColor: mascot.theme.text }} onClick={onOpenGuide}>
+                        GUIDELINE
+                    </button>
+                    <button className={styles['start-btn']} style={{ backgroundColor: mascot.theme.button }} onClick={onStart}>
+                        START GAME
+                    </button>
+                </div>
             </div>
         </div>
     );

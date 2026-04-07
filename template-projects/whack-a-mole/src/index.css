@@ -826,6 +826,15 @@ button:hover {
   animation: modal-pop 0.3s ease;
 }
 
+.guide-modal.pre-start {
+  user-select: initial;
+  -webkit-user-select: initial;
+}
+
+.guide-modal.pre-start button.icon-btn {
+  cursor: pointer !important;
+}
+
 .guide-modal button {
   position: static;
   /* 🔥 reset lại */

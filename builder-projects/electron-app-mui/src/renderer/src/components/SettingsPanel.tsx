@@ -1,6 +1,7 @@
 import CloseIcon from '@mui/icons-material/Close'
 import { Box, Divider, Drawer, IconButton, Typography } from '@mui/material'
 import { useSettings } from '@renderer/hooks/useSettings'
+import { useSettingsStore } from '@renderer/stores/settingsStore'
 import React, { useCallback } from 'react'
 import {
   GlobalSettingsSection,
@@ -16,7 +17,10 @@ interface Props {
 }
 
 export default function SettingsPanel({ open, onClose, hasProject }: Props): React.ReactElement {
-  const { globalSettings, projectSettings, resolved, updateGlobal, updateProject } = useSettings()
+  const { globalSettings, projectSettings, resolved, updateProject } = useSettings()
+  const updateAutoSaveMode = useSettingsStore((s) => s.updateAutoSaveMode)
+  const updateAutoSaveInterval = useSettingsStore((s) => s.updateAutoSaveInterval)
+  const updatePrefillNames = useSettingsStore((s) => s.updatePrefillNames)
 
   const clearProjOverride = useCallback(
     (key: keyof ProjectSettings): void => {
@@ -75,11 +79,9 @@ export default function SettingsPanel({ open, onClose, hasProject }: Props): Rea
           mode={globalSettings.autoSave.mode}
           intervalSec={globalSettings.autoSave.intervalSeconds}
           prefillNames={globalSettings.prefillNames}
-          onModeChange={(mode) => updateGlobal({ autoSave: { ...globalSettings.autoSave, mode } })}
-          onIntervalChange={(s) =>
-            updateGlobal({ autoSave: { ...globalSettings.autoSave, intervalSeconds: s } })
-          }
-          onPrefillChange={(v) => updateGlobal({ prefillNames: v })}
+          onModeChange={updateAutoSaveMode}
+          onIntervalChange={updateAutoSaveInterval}
+          onPrefillChange={updatePrefillNames}
         />
 
         {/* ── Per-project overrides ── */}

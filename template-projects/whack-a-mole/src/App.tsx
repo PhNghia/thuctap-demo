@@ -52,6 +52,15 @@ function App() {
   }, []);
 
   const APP_DATA = useMemo(() => {
+    if (window.APP_DATA) {
+      const { title, class: classId } = window.APP_DATA;
+      if (!title) {
+        window.APP_DATA.title = data.title;
+      }
+      if (!classId) {
+        window.APP_DATA.class = data.class;
+      }
+    }
     return window.APP_DATA ? window.APP_DATA : data;
   }, []);
 
@@ -124,11 +133,21 @@ function App() {
   return (
     <>
       {!isStarted && (
-        <StartScreen
-          classId={APP_DATA.class}
-          title={APP_DATA.title}
-          onStart={handleStart}
-        />
+        <>
+          <StartScreen
+            classId={APP_DATA.class}
+            title={APP_DATA.title}
+            onStart={handleStart}
+            onOpenGuide={() => setShowGuide(true)}
+          />
+          <GuideModal
+            isStarted={isStarted}
+            open={showGuide}
+            onClose={() => {
+              setShowGuide(false)
+            }}
+          />
+        </>
       )}
 
       <div className={`scene ${isEntering ? "enter" : ""}`}>

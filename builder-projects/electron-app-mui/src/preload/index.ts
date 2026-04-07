@@ -64,6 +64,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   resolveAssetUrl: (projectDir: string, relativePath: string) =>
     typedIpcRenderer.invoke('resolve-asset-url', projectDir, relativePath),
 
+  // File system utilities
+  openPathInExplorer: (filePath: string) =>
+    typedIpcRenderer.invoke('open-path-in-explorer', filePath),
+  createTempFolder: () => typedIpcRenderer.invoke('create-temp-folder'),
+
   // Settings
   settingsReadGlobal: () => typedIpcRenderer.invoke('settings-read-global'),
   settingsWriteGlobal: (data: GlobalSettings) =>

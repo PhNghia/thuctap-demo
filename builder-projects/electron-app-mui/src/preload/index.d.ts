@@ -36,6 +36,10 @@ export interface ElectronAPI {
   ) => Promise<string>
   resolveAssetUrl: (projectDir: string, relativePath: string) => Promise<string>
 
+  // File system utilities
+  openPathInExplorer: (filePath: string) => Promise<void>
+  createTempFolder: () => Promise<string>
+
   // Settings
   settingsReadGlobal: () => Promise<GlobalSettings>
   settingsWriteGlobal: (data: GlobalSettings) => Promise<boolean>

@@ -1,8 +1,8 @@
 import type { GameData } from './type'
 
 export const data: GameData = {
-  title: "Whack a Mole",
-  class: "1",
+  title: "Free Style",
+  class:  (["1", "2", "3", "4", "5"] as const)[Math.floor(Math.random() * 5)],
   questions: [
     {
       groupId: 1,

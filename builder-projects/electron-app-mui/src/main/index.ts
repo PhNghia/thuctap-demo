@@ -2,6 +2,7 @@ import archiver from 'archiver'
 import { app, BrowserWindow, dialog, net, protocol, shell } from 'electron'
 import { installExtension, REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer'
 import * as fs from 'fs'
+import * as os from 'os'
 import * as path from 'path'
 import type { AnyAppData, FolderStatus, GameTemplate, GlobalSettings, ProjectFile } from '../shared'
 import { EXPORT_ASSETS_DIR, PROJECT_ASSETS_DIR } from '../shared'
@@ -481,6 +482,19 @@ createHandler('resolve-asset-url', async (_e, projectDir: string, relativePath: 
   // relativePath is just the filename (normalized at project load time)
   const abs = path.join(projectDir, PROJECT_ASSETS_DIR, relativePath)
   return `file://${abs.replace(/\\/g, '/')}`
+})
+
+// ── IPC: File system utilities ────────────────────────────────────────────────
+createHandler('open-path-in-explorer', async (_e, filePath: string) => {
+  shell.showItemInFolder(filePath)
+})
+
+createHandler('create-temp-folder', async () => {
+  const tempBase = os.tmpdir()
+  const uniqueName = `minigame-temp-${Date.now()}-${crypto.randomUUID()}`
+  const tempFolder = path.join(tempBase, uniqueName)
+  fs.mkdirSync(tempFolder, { recursive: true })
+  return tempFolder
 })
 
 // ── IPC: Settings ─────────────────────────────────────────────────────────────

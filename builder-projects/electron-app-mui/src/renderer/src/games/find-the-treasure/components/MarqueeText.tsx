@@ -36,17 +36,18 @@ export function MarqueeText({
 
   // ── DERIVED STATE: Compute during render (no useEffect needed) ──
   const shouldAnimate = needsMarquee && (isActive || isHovered)
+  const [prevShouldAnimate, setPrevShouldAnimate] = useState(shouldAnimate)
 
-  // ── SIDE EFFECT: Mount/unmount Marquee with rAF delay ──
-  useLayoutEffect(() => {
+  // ── SIDE EFFECT: Mount/unmount Marquee ──
+  if (prevShouldAnimate !== shouldAnimate) {
+    setPrevShouldAnimate(shouldAnimate)
     if (shouldAnimate) {
-      const raf = requestAnimationFrame(() => setIsMarqueeMounted(true))
-      return () => cancelAnimationFrame(raf)
+      setIsMarqueeMounted(true)
+    } else {
+      // Unmount immediately when shouldAnimate becomes false
+      setIsMarqueeMounted(false)
     }
-    // Unmount immediately when shouldAnimate becomes false
-    setIsMarqueeMounted(false)
-    return
-  }, [shouldAnimate]) // ✅ Only one dependency, no cascading setState
+  }
 
   // ── Shared styles ──
   const containerStyle: React.CSSProperties = {

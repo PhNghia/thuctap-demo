@@ -266,6 +266,7 @@ export interface ProjectMeta {
   createdAt: string
   updatedAt: string
   settings?: ProjectSettings | null
+  isTemporary?: boolean
 }
 
 export type FolderStatus = 'empty' | 'has-project' | 'non-empty'
@@ -359,6 +360,14 @@ export interface IPCChannelDefinitions {
       projectDir: string,
       relativePath: string
     ) => Promise<string>
+  }
+
+  // File system utilities
+  'open-path-in-explorer': {
+    handler: (event: IpcMainInvokeEvent, filePath: string) => Promise<void>
+  }
+  'create-temp-folder': {
+    handler: (event: IpcMainInvokeEvent) => Promise<string>
   }
 
   // Settings

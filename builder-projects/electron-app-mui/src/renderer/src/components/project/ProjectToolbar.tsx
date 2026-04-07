@@ -5,7 +5,6 @@ import PreviewIcon from '@mui/icons-material/Preview'
 import RedoIcon from '@mui/icons-material/Redo'
 import SaveIcon from '@mui/icons-material/Save'
 import SaveAsIcon from '@mui/icons-material/SaveAs'
-import SettingsIcon from '@mui/icons-material/Settings'
 import UndoIcon from '@mui/icons-material/Undo'
 import { Box, Button, Chip, Divider, IconButton, Tooltip, Typography } from '@mui/material'
 import React from 'react'
@@ -19,13 +18,14 @@ export interface ProjectToolbarProps {
   canRedo: boolean
   onBack: () => void
   onRename: () => void
-  onSettings: () => void
   onSave: () => void
   onSaveAs: () => void
   onPreview: () => void
   onExport: (event: React.MouseEvent<HTMLElement>) => void
   onUndo: () => void
   onRedo: () => void
+  /** Render prop for the More Actions menu (three dots) */
+  renderMoreActions: () => React.ReactElement
 }
 
 export function ProjectToolbar({
@@ -37,13 +37,13 @@ export function ProjectToolbar({
   canRedo,
   onBack,
   onRename,
-  onSettings,
   onSave,
   onSaveAs,
   onPreview,
   onExport,
   onUndo,
-  onRedo
+  onRedo,
+  renderMoreActions
 }: ProjectToolbarProps): React.ReactElement {
   return (
     <Box
@@ -130,11 +130,6 @@ export function ProjectToolbar({
 
         <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
 
-        <Tooltip title="Settings">
-          <IconButton size="small" onClick={onSettings}>
-            <SettingsIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
         <Tooltip title="Save (Ctrl+S)">
           <Button
             size="small"
@@ -166,6 +161,7 @@ export function ProjectToolbar({
             Export
           </Button>
         </Tooltip>
+        {renderMoreActions()}
       </Box>
     </Box>
   )

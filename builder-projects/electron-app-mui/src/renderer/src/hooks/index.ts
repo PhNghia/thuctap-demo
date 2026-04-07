@@ -28,10 +28,6 @@ export type { TieredShortcutOptions } from './useTieredShortcuts'
 
 export { useTieredShortcuts } from './useTieredShortcuts'
 
-// Project management (new)
-export { useProjectActions } from './useProjectActions'
-export type { ProjectActionsOptions, SaveAsResult } from './useProjectActions'
-
 export { useAutoSave } from './useAutoSave'
 export type { UseAutoSaveOptions } from './useAutoSave'
 

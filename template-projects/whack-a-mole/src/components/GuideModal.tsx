@@ -3,18 +3,19 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { guidelinePages as pages } from "../constants";
 
 type Props = {
+    isStarted?: boolean;
     open: boolean;
     onClose: () => void;
 };
 
-export default function GuideModal({ open, onClose }: Props) {
+export default function GuideModal({ isStarted = true, open, onClose }: Props) {
     const [page, setPage] = useState(0);
 
     if (!open) return null;
 
     return (
         <div className="modal-overlay">
-            <div className="guide-modal">
+            <div className={`guide-modal ${isStarted ? "" : "pre-start"}`}>
                 
                 {/* close icon */}
                 <button className="icon-btn close-btn" onClick={() => { onClose(); setPage(0); }}>

@@ -1,34 +1,18 @@
 import { useState, useRef } from "react";
 import DropZone from "./DropZone";
-import BodyPartConnectors from "./BodyPartConnectors";
-import type { DiagramData, Label } from "../types/diagram";
+import type { DiagramData, Label, Zone } from "../types/diagram";
 
 interface Props {
   data: DiagramData;
   placed: Record<string, string>;
-  onZoneSelect?: (coords: { x: number; y: number }) => void;
-  selectedPoint?: { x: number; y: number } | null;
-  showAnnotations?: boolean;
 }
 
-const DiagramBoard = ({ data, placed, onZoneSelect, selectedPoint, showAnnotations = true }: Props) => {
+const DiagramBoard: React.FC<Props> = ({ data, placed }) => {
   const [imageError, setImageError] = useState(false);
-  const boardRef = useRef<HTMLDivElement>(null);
-  const [boardDimensions, setBoardDimensions] = useState({ width: 500, height: 600 });
+  const boardRef = useRef<HTMLDivElement | null>(null);
 
-  const getLabel = (id: string): Label | undefined =>
-    data.labels.find((l: Label) => l.id === id);
-
-  // Create labels map for connectors
-  const labelsMap = new Map(data.labels.map((l) => [l.id, l]));
-
-  const handleImageLoad = () => {
-    if (boardRef.current) {
-      setBoardDimensions({
-        width: boardRef.current.offsetWidth,
-        height: boardRef.current.offsetHeight,
-      });
-    }
+  const getLabel = (id: string): Label | undefined => {
+    return data.labels.find((l) => l.id === id);
   };
 
   return (
@@ -37,51 +21,24 @@ const DiagramBoard = ({ data, placed, onZoneSelect, selectedPoint, showAnnotatio
         ref={boardRef}
         className="relative bg-gradient-to-br from-slate-700 to-slate-800 rounded-2xl shadow-elevated p-4 inline-block border border-white/10"
       >
-        {imageError || !data.imagePath ? (
-          <div className="w-full max-w-[500px] h-auto bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-purple-400/50">
-            <div className="text-center p-8">
-              <div className="text-6xl mb-4 animate-float">🖼️</div>
-              <h2 className="text-2xl font-bold text-white mb-4">Upload Your Image</h2>
-              <div className="bg-white/10 backdrop-blur p-4 rounded-lg shadow-soft border border-white/20">
-                <p className="text-sm text-purple-200 mb-2">Supported formats: PNG, JPG, GIF, SVG</p>
-                <p className="text-xs text-purple-300">Click the "Choose File" button in the sidebar to get started!</p>
-              </div>
-            </div>
+        {/* Image */}
+        {imageError || !data?.imagePath ? (
+          <div className="w-[500px] h-[400px] flex items-center justify-center text-white">
+            ❌ Image not found
           </div>
         ) : (
           <img
             src={data.imagePath}
             alt={data.name}
-            className="w-full max-w-[500px] h-auto rounded-xl shadow-lg cursor-crosshair"
+            className="w-full max-w-[500px] h-auto rounded-xl shadow-lg"
             onError={() => setImageError(true)}
-            onLoad={handleImageLoad}
-            onClick={(event) => {
-              if (!onZoneSelect) return;
-              const rect = event.currentTarget.getBoundingClientRect();
-              const x = ((event.clientX - rect.left) / rect.width) * 100;
-              const y = ((event.clientY - rect.top) / rect.height) * 100;
-              onZoneSelect({ x, y });
-            }}
             loading="lazy"
           />
         )}
 
-        {showAnnotations && selectedPoint && (
-          <div
-            className="absolute rounded-full bg-red-500 border-2 border-white pointer-events-none"
-            style={{
-              width: 12,
-              height: 12,
-              left: `${selectedPoint.x}%`,
-              top: `${selectedPoint.y}%`,
-              transform: "translate(-50%, -50%)",
-            }}
-          />
-        )}
-
         {/* Drop zones */}
-        {data.zones.map((zone) => {
-          const labelId = placed[zone.id];
+        {data?.zones?.map((zone: Zone) => {
+          const labelId = placed?.[zone.id];
           const label = labelId ? getLabel(labelId) : undefined;
 
           return (
@@ -93,21 +50,9 @@ const DiagramBoard = ({ data, placed, onZoneSelect, selectedPoint, showAnnotatio
                 labelId ? labelId === zone.correctLabelId : undefined
               }
               correctLabelId={zone.correctLabelId}
-              showAnnotations={showAnnotations}
             />
           );
         })}
-
-        {/* Visual connectors */}
-        {showAnnotations && (
-          <BodyPartConnectors
-            zones={data.zones}
-            placed={placed}
-            labelsMap={labelsMap}
-            containerWidth={boardDimensions.width}
-            containerHeight={boardDimensions.height}
-          />
-        )}
       </div>
     </div>
   );
