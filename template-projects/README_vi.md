@@ -341,7 +341,7 @@ Tạo `my-new-game/meta.json`:
   "name": "Tên Game của Bạn",
   "description": "Một câu mô tả hiển thị trên màn hình chính.",
   "gameType": "my-new-game",
-  "version": "1.0.0"
+  "version": "0.0.1"
 }
 ```
 
@@ -482,7 +482,7 @@ Mỗi template phải có `meta.json` ở cấp độ root:
   "name": "Tên Game dễ đọc",
   "description": "Một câu mô tả hiển thị trên màn hình chính.",
   "gameType": "your-game-id",
-  "version": "1.0.0"
+  "version": "0.0.1"
 }
 ```
 

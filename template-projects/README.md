@@ -341,7 +341,7 @@ Create `my-new-game/meta.json`:
   "name": "My New Game",
   "description": "A fun educational game.",
   "gameType": "my-new-game",
-  "version": "1.0.0"
+  "version": "0.0.1"
 }
 ```
 
@@ -482,7 +482,7 @@ Each template must have a `meta.json` at the root level:
   "name": "Human-readable Game Name",
   "description": "One sentence shown on the home screen.",
   "gameType": "your-game-id",
-  "version": "1.0.0"
+  "version": "0.0.1"
 }
 ```
 

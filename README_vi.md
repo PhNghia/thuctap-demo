@@ -138,7 +138,7 @@ Mỗi thư mục template phải chứa `meta.json` ở cấp root (cạnh `vite
   "name": "Tên Trò Chơi Dễ Đọc",
   "description": "Một câu mô tả hiển thị trên màn hình chính.",
   "gameType": "your-game-id",
-  "version": "1.0.0"
+  "version": "0.0.1"
 }
 ```
 

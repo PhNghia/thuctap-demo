@@ -1,16 +1,23 @@
-import { resolve } from 'path'
 import babel from '@rolldown/plugin-babel'
-import { defineConfig } from 'electron-vite'
-import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import react, { reactCompilerPreset } from '@vitejs/plugin-react'
+import { defineConfig } from 'electron-vite'
+import { resolve } from 'path'
 
 export default defineConfig({
-  main: {},
+  main: {
+    resolve: {
+      alias: {
+        '@shared': resolve('src/shared')
+      }
+    }
+  },
   preload: {},
   renderer: {
     resolve: {
       alias: {
-        '@renderer': resolve('src/renderer/src')
+        '@renderer': resolve('src/renderer/src'),
+        '@shared': resolve('src/shared')
       }
     },
     plugins: [react(), babel({ presets: [reactCompilerPreset()] }), tailwindcss()]

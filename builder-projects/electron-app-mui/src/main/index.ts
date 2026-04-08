@@ -324,7 +324,7 @@ app.whenReady().then(() => {
     // Serve assets from the specific directory saved for THIS session
     const filePath = path.join(session.gameDir, pathName)
     console.log(`Serving assets from filePath: ${filePath}`)
-    return net.fetch(`file://${filePath}`)
+    return net.fetch(pathToFileURL(filePath).href)
   })
 
   createWindow()
@@ -367,7 +367,7 @@ createHandler('get-templates', async () => {
       const thumbFile = IMAGE_EXTS.map((ext) => path.join(base, `thumbnail${ext}`)).find(
         fs.existsSync
       )
-      const thumbnailUrl = thumbFile ? `file://${thumbFile.replace(/\\/g, '/')}` : null
+      const thumbnailUrl = thumbFile ? pathToFileURL(thumbFile).href : null
 
       return { id: dir.name, ...meta, thumbnailUrl }
     })
@@ -486,7 +486,7 @@ createHandler(
 createHandler('resolve-asset-url', async (_e, projectDir: string, relativePath: string) => {
   // relativePath is just the filename (normalized at project load time)
   const abs = path.join(projectDir, PROJECT_ASSETS_DIR, relativePath)
-  return `file://${abs.replace(/\\/g, '/')}`
+  return pathToFileURL(abs).href
 })
 
 // ── IPC: File system utilities ────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 {
   "name": "Diagram Labeling Game",
-  "description": "[GAME CHUA HOAN THIEN] Drag labels to correct positions on image",
+  "description": "[GAME CHUA XONG] Drag labels to correct positions on image\n GAME DA NHAN VA HIEN THI DC DATA DE TEST EDITOR",
   "gameType": "diagram-labeling",
-  "version": "1.0.0"
+  "version": "0.0.1"
 }

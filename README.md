@@ -142,7 +142,7 @@ Each template folder must contain a `meta.json` at the root level (next to `vite
   "name": "Human-readable Game Name",
   "description": "One sentence shown on the home screen.",
   "gameType": "your-game-id",
-  "version": "1.0.0"
+  "version": "0.0.1"
 }
 ```
 
