@@ -566,29 +566,40 @@ export function GameTemplateCard({
             </Typography>
             {onShowRecentForTemplate && (
               <Tooltip title={`Show recent "${template.name}" projects`}>
-                <Button
-                  size="small"
+                <Box
+                  component="span"
                   onClick={(e) => {
                     e.stopPropagation()
                     onShowRecentForTemplate(template.id)
                   }}
-                  startIcon={<HistoryIcon sx={{ fontSize: 14 }} />}
                   sx={{
                     ml: 'auto',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                    px: 1,
+                    py: 0.25,
                     fontSize: '0.7rem',
                     fontWeight: 600,
                     textTransform: 'none',
                     color: 'text.secondary',
-                    borderColor: 'rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 1,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
                     '&:hover': {
                       color: 'primary.main',
                       borderColor: 'primary.main',
                       background: 'rgba(110,231,183,0.08)'
+                    },
+                    '&:active': {
+                      transform: 'scale(0.97)'
                     }
                   }}
                 >
+                  <HistoryIcon sx={{ fontSize: 14 }} />
                   Show Recent
-                </Button>
+                </Box>
               </Tooltip>
             )}
           </Box>
