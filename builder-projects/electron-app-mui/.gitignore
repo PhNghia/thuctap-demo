@@ -166,3 +166,4 @@ vite.config.ts.timestamp-*
 templates/**
 !templates/*/meta*.*
 *PLAN*.md
+asar/

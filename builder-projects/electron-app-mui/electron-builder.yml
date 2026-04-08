@@ -20,8 +20,8 @@ extraResources:
     to: 'templates'
 
 asar: true
-asarUnpack:
-  - 'resources/**'
+# asarUnpack:
+#   - 'resources/**'
 
 # --- NSIS CONFIGURATION FOR TWO INSTALLERS ---
 win:
